@@ -30,7 +30,7 @@ PYTHONPATH="." pkm_env/bin/pytest tests/ -v
 ```
 
 > [!NOTE]
-> Seluruh unit test (terdiri dari 23 test *cases*) telah berhasil diselesaikan dengan hasil **100% PASSED**. Hal ini menjamin bahwa seluruh format data antar-lapisan valid dan *Gating Rules* berjalan dengan semestinya (termasuk *Calibration Phase Bypass*).
+> Seluruh unit test (terdiri dari **54 test *cases***) telah berhasil diselesaikan dengan hasil **100% PASSED** dan *code coverage* **93%**. Hal ini menjamin bahwa seluruh format data antar-lapisan valid dan *Gating Rules* berjalan dengan semestinya (termasuk *Calibration Phase Bypass*).
 
 ## Uji Coba Simulasi (End-to-End)
 

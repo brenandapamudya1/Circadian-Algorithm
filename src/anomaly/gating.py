@@ -4,6 +4,12 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 def load_gating_rules() -> dict:
+    """
+    Loads gating rules configuration from config/gating_rules.yaml.
+
+    Returns:
+        dict: Dict of rule ID ke konfigurasi rule. Dict kosong jika file tidak ada.
+    """
     config_path = PROJECT_ROOT / "config" / "gating_rules.yaml"
     if config_path.exists():
         with open(config_path, 'r') as f:
@@ -11,6 +17,15 @@ def load_gating_rules() -> dict:
     return {}
 
 def _gr_01_sleep_window_imu(epoch: dict) -> bool:
+    """
+    GR-01: Suppress IMU anomali yang terjadi pada window NOCTURNAL (tidur normal).
+
+    Args:
+        epoch (dict): Epoch yang sudah memiliki anomaly_flags dan window.
+
+    Returns:
+        bool: False (suppress) jika IMU anomali saat NOCTURNAL, True jika lolos.
+    """
     is_nocturnal = epoch.get("window") == "NOCTURNAL"
     imu_anomaly = epoch.get("anomaly_flags", {}).get("imu_anomaly", False)
     if is_nocturnal and imu_anomaly:
@@ -18,6 +33,15 @@ def _gr_01_sleep_window_imu(epoch: dict) -> bool:
     return True
 
 def _gr_02_exercise_pitch(epoch: dict) -> bool:
+    """
+    GR-02: Suppress vocal anomali F0 naik ketika IMU mendeteksi high activity (olahraga).
+
+    Args:
+        epoch (dict): Epoch dengan anomaly_flags, vocal_normalized, imu_normalized.
+
+    Returns:
+        bool: False (suppress) jika vocal anomali + F0 naik + activity high.
+    """
     vocal_anomaly = epoch.get("anomaly_flags", {}).get("vocal_anomaly", False)
     
     f0_norm = epoch.get("vocal_normalized", {}).get("f0_mean", {})
@@ -32,6 +56,16 @@ def _gr_02_exercise_pitch(epoch: dict) -> bool:
     return True
 
 def _gr_03_post_meal_hrv(epoch: dict) -> bool:
+    """
+    GR-03: Suppress HRV anomali (RMSSD turun) saat AFTERNOON atau EVENING window
+    karena bisa disebabkan oleh digestion post-meal.
+
+    Args:
+        epoch (dict): Epoch dengan anomaly_flags, hrv_normalized, window.
+
+    Returns:
+        bool: False (suppress) jika HRV anomali + RMSSD turun di window post-meal.
+    """
     hrv_anomaly = epoch.get("anomaly_flags", {}).get("hrv_anomaly", False)
     window = epoch.get("window")
     
@@ -45,6 +79,16 @@ def _gr_03_post_meal_hrv(epoch: dict) -> bool:
     return True
 
 def _gr_04_morning_activation(epoch: dict) -> bool:
+    """
+    GR-04: Suppress anomali pitch & HR naik alami di window MORNING
+    (morning cortisol activation — bukan anomali patologis).
+
+    Args:
+        epoch (dict): Epoch dengan anomaly_flags, vocal_normalized, hrv_normalized, window.
+
+    Returns:
+        bool: False (suppress) jika pitch atau HR naik secara natural di MORNING.
+    """
     vocal_anomaly = epoch.get("anomaly_flags", {}).get("vocal_anomaly", False)
     hrv_anomaly = epoch.get("anomaly_flags", {}).get("hrv_anomaly", False)
     window = epoch.get("window")

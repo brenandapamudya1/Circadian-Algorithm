@@ -17,6 +17,13 @@ class SlidingBuffer:
     def add_data(self, payload: Dict[str, Any]):
         """
         Adds a single parsed and validated payload to the buffer.
+
+        Args:
+            payload (Dict[str, Any]): Parsed sensor payload dengan field ``timestamp``
+                (ISO 8601 UTC), ``user_id``, ``hrv_raw``, ``audio_raw``, ``imu_raw``.
+
+        Returns:
+            None
         """
         self.data_stream.append(payload)
         self.data_stream.sort(key=lambda x: datetime.fromisoformat(x["timestamp"]))

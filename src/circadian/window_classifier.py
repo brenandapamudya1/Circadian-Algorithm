@@ -6,6 +6,15 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 def load_config(file_name: str) -> dict:
+    """
+    Loads a YAML configuration file from the config/ directory.
+
+    Args:
+        file_name (str): Nama file YAML (misal "circadian_windows.yaml").
+
+    Returns:
+        dict: Isi YAML sebagai dict Python. Dict kosong jika file tidak ada.
+    """
     path = PROJECT_ROOT / "config" / file_name
     if path.exists():
         with open(path, 'r') as f:
@@ -15,6 +24,18 @@ def load_config(file_name: str) -> dict:
 def get_biological_window(timestamp_utc: str) -> str:
     """
     Maps UTC timestamp to user's local biological window based on configuration.
+
+    Args:
+        timestamp_utc (str): Timestamp ISO 8601 dalam UTC
+            (misal "2026-07-01T03:00:00Z" atau "2026-07-01T03:00:00+00:00").
+
+    Returns:
+        str: Nama biological window ("MORNING", "AFTERNOON", "EVENING",
+            "PRE-SLEEP", "NOCTURNAL", atau "UNKNOWN" jika tidak ada yang cocok).
+
+    Raises:
+        Exception: Ditangkap secara internal jika timezone string tidak valid;
+            fallback ke UTC.
     """
     windows = load_config("circadian_windows.yaml").get('windows', {})
     profile = load_config("user_profile.yaml")

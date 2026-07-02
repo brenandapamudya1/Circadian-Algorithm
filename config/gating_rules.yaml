@@ -1,3 +1,8 @@
+global:
+  zscore_threshold: 2.0     # threshold z-score untuk flagging anomali
+  ema_alpha: 0.1            # alpha exponential moving average untuk update baseline
+  pipeline_version: "1.0.0" # versi pipeline untuk field output feature vector
+
 gating_rules:
   GR-01:
     name: sleep_window_imu
