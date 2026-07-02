@@ -1,0 +1,21 @@
+gating_rules:
+  GR-01:
+    name: sleep_window_imu
+    description: "IMU anomali saat window NOCTURNAL (tidur normal) disuppress"
+    enabled: true
+  GR-02:
+    name: exercise_pitch
+    description: "Vocal F0 naik saat IMU mendeteksi high activity disuppress"
+    enabled: true
+  GR-03:
+    name: post_meal_hrv
+    description: "RMSSD turun selama 30-90 mnt setelah AFTERNOON window disuppress"
+    enabled: true
+  GR-04:
+    name: morning_activation
+    description: "Pitch & HR naik natural di 30 mnt pertama MORNING window disuppress"
+    enabled: true
+  GR-05:
+    name: calibration_bypass
+    description: "Semua anomali di-bypass jika belum 7 hari kalibrasi"
+    enabled: true

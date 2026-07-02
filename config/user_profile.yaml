@@ -1,0 +1,3 @@
+user_id: "template_user"
+timezone: "Asia/Jakarta"  # default UTC offset or timezone string
+calibration_start_date: "2026-07-01T00:00:00Z"

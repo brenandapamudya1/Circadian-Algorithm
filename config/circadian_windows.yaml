@@ -1,0 +1,21 @@
+windows:
+  NOCTURNAL:
+    start: "00:00:00"
+    end: "05:59:59"
+    description: "baseline tidur, parasimpatis dominan"
+  MORNING:
+    start: "06:00:00"
+    end: "11:59:59"
+    description: "aktivasi simpatis, pitch naik natural"
+  AFTERNOON:
+    start: "12:00:00"
+    end: "16:59:59"
+    description: "aktivitas puncak, HRV bervariasi tinggi"
+  EVENING:
+    start: "17:00:00"
+    end: "21:59:59"
+    description: "transisi, penurunan pitch natural"
+  PRE-SLEEP:
+    start: "22:00:00"
+    end: "23:59:59"
+    description: "wind-down, HRV mulai naik"
