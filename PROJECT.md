@@ -41,6 +41,9 @@ manik.
 | Testing          | pytest                             | Unit test per modul                         |
 | Visualisasi dev  | matplotlib, seaborn                | Debug dan validasi pola sirkadian           |
 | Logging          | Python logging (structured)        | Audit trail tiap decision filter            |
+| **Mobile App**   | React Native (Expo) + TypeScript   | Aplikasi lintas platform (Android/iOS)      |
+| **Mobile Storage**| SQLite (expo-sqlite)              | Penyimpanan lokal standalone tanpa internet |
+| **Mobile Comm**  | react-native-ble-plx               | Komunikasi BLE hemat daya dengan ESP32      |
 
 ---
 
@@ -136,6 +139,10 @@ bipolyzer-circadian/
 ├── README.md                   ← quick start
 ├── requirements.txt
 ├── .env.example                ← konfigurasi environment
+│
+├── mobile/                     ← React Native mobile application
+│   ├── MOBILE.md               ← arsitektur & panduan mobile app
+│   └── ...
 │
 ├── config/
 │   ├── circadian_windows.yaml  ← definisi window biologis & threshold
