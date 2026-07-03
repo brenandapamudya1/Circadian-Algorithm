@@ -8,7 +8,7 @@ from src.circadian.baseline_manager import get_baseline, update_baseline, BASELI
 from src.circadian.normalizer import normalize_features
 
 
-# ── window_classifier ──────────────────────────────────────────────────────────
+# window_classifier
 
 def test_get_biological_window_morning():
     # 03:00 UTC + Asia/Jakarta (+7) = 10:00 Local → MORNING
@@ -61,7 +61,7 @@ def test_get_biological_window_invalid_timezone_fallback():
     assert isinstance(window, str)
 
 
-# ── baseline_manager ───────────────────────────────────────────────────────────
+# baseline_manager
 
 def test_baseline_manager_new_user():
     user_id = "test_user_circadian"
@@ -146,7 +146,7 @@ def test_update_baseline_corrupt_json_reset():
         os.remove(file_path)
 
 
-# ── normalizer ─────────────────────────────────────────────────────────────────
+# normalizer
 
 def test_normalize_features_uncalibrated():
     epoch = {

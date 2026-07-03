@@ -27,7 +27,7 @@ def _make_mock_payloads(n: int = 46, user_id: str = "test_user_pipeline") -> lis
     return payloads
 
 
-# ── happy path ─────────────────────────────────────────────────────────────────
+# happy path
 
 def test_full_pipeline_end_to_end():
     results = run_pipeline(_make_mock_payloads())
@@ -54,7 +54,7 @@ def test_pipeline_produces_valid_json():
     assert isinstance(serialized, str)
 
 
-# ── invalid payload handling ───────────────────────────────────────────────────
+# invalid payload handling
 
 def test_pipeline_skips_invalid_payload():
     """Payload yang tidak valid harus dilewati tanpa crash pipeline."""
@@ -104,7 +104,7 @@ def test_pipeline_all_invalid_returns_empty():
     assert results == []
 
 
-# ── save_output ────────────────────────────────────────────────────────────────
+# save_output
 
 def test_save_output_creates_files():
     """save_output harus membuat file JSON per feature vector di direktori output."""

@@ -8,7 +8,7 @@ from src.anomaly.detector import detect_anomalies, _load_global_config
 from src.anomaly.gating import apply_gating_rules
 
 
-# ── detector tests ─────────────────────────────────────────────────────────────
+# detector tests
 
 def test_detect_anomalies():
     epoch = {
@@ -43,7 +43,7 @@ def test_detect_anomalies_missing_config_fallback():
     assert cfg == {}
 
 
-# ── gating GR-01 ───────────────────────────────────────────────────────────────
+# gating GR-01
 
 def test_gating_gr01_sleep_window():
     epoch = {
@@ -56,7 +56,7 @@ def test_gating_gr01_sleep_window():
     assert reason == "sleep_window_imu"
 
 
-# ── gating GR-02 ───────────────────────────────────────────────────────────────
+# gating GR-02
 
 def test_gating_gr02_exercise_pitch():
     epoch = {
@@ -71,7 +71,7 @@ def test_gating_gr02_exercise_pitch():
     assert reason == "exercise_pitch"
 
 
-# ── gating GR-03 ───────────────────────────────────────────────────────────────
+# gating GR-03
 
 def test_gating_gr03_post_meal_hrv_afternoon():
     """GR-03: HRV anomali + RMSSD turun di AFTERNOON harus di-suppress."""
@@ -124,7 +124,7 @@ def test_gating_gr03_rmssd_not_dropped():
     assert reason is None
 
 
-# ── gating GR-04 ───────────────────────────────────────────────────────────────
+# gating GR-04
 
 def test_gating_gr04_morning_activation_vocal():
     """GR-04: Vocal anomali + F0 naik di MORNING → suppress."""
@@ -164,7 +164,7 @@ def test_gating_gr04_morning_activation_hr():
     assert reason == "morning_activation"
 
 
-# ── gating GR-05 ───────────────────────────────────────────────────────────────
+# gating GR-05
 
 def test_gating_gr05_calibration_bypass():
     epoch = {
@@ -177,7 +177,7 @@ def test_gating_gr05_calibration_bypass():
     assert reason is None
 
 
-# ── no anomaly path ────────────────────────────────────────────────────────────
+# no anomaly path
 
 def test_gating_no_anomaly_passes():
     """Jika tidak ada anomali sama sekali, langsung return True tanpa evaluasi rules."""
@@ -194,7 +194,7 @@ def test_gating_no_anomaly_passes():
     assert reason is None
 
 
-# ── process_anomalies integration ─────────────────────────────────────────────
+# process_anomalies integration
 
 def test_process_anomalies():
     epoch = {

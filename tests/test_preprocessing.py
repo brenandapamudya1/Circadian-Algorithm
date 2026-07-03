@@ -7,7 +7,7 @@ from src.preprocessing.imu import extract_imu_features
 from src.preprocessing import process_epoch
 
 
-# ── hrv ────────────────────────────────────────────────────────────────────────
+# hrv
 
 def test_extract_hrv_features_empty():
     res = extract_hrv_features([])
@@ -75,7 +75,7 @@ def test_extract_hrv_features_mock():
     assert "mean_hr" in res
 
 
-# ── vocal ───────────────────────────────────────────────────────────────────────
+# vocal
 
 def test_extract_vocal_features_empty():
     res = extract_vocal_features([])
@@ -109,7 +109,7 @@ def test_extract_vocal_features_mock():
     assert "speech_rate" in res
 
 
-# ── imu ─────────────────────────────────────────────────────────────────────────
+# imu
 
 def test_extract_imu_features_empty():
     res = extract_imu_features({})
@@ -157,7 +157,7 @@ def test_extract_imu_features_moderate_activity():
     assert res["activity_level"] == "moderate"
 
 
-# ── process_epoch ──────────────────────────────────────────────────────────────
+# process_epoch
 
 def test_process_epoch():
     epoch = {
