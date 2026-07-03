@@ -31,7 +31,7 @@ graph TD
         Preprocess --> BLETx["Kirim Fitur Ringan via BLE (Karakteristik GATT)"]
     end
 
-    subgraph Mobile App (Android & iOS)
+    subgraph "Mobile App (Android & iOS)"
         BLETx -->|Receive BLE Notification| BLERx["BLE Receiver"]
         BLERx --> Buffer["Sliding Buffer 30s"]
         
