@@ -126,7 +126,7 @@ mobile/
 │   │   ├── bleManager.ts        ← Logika Scan, Connect, dan Listen BLE
 │   │   └── syncService.ts       ← Pengumpul data & buffer BLE ke SQLite
 │   │
-│   ├── circadian/               ← Porting Logika Python ➡️ TypeScript
+│   ├── circadian/               ← Porting Logika Python -> TypeScript
 │   │   ├── windowClassifier.ts  ← Menentukan window biologis berdasarkan jam lokal HP
 │   │   ├── baselineManager.ts   ← Penerapan EMA (alpha=0.1) harian pada database
 │   │   ├── normalizer.ts        ← Perhitungan z-score instan
