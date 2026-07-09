@@ -15,7 +15,11 @@ Aplikasi mobile ini dibangun menggunakan teknologi modern yang berfokus pada efi
 | **Koneksi Bluetooth** | `react-native-ble-plx` | Library BLE terlengkap untuk React Native yang mendukung sinkronisasi background dan pertukaran data GATT secara asinkron. |
 | **Database Lokal** | `expo-sqlite` | Driver SQLite native yang ringan untuk penyimpanan data baseline personal dan riwayat fitur secara offline. |
 | **State Management** | Zustand | State management minimalis, cepat, dan mudah diintegrasikan dengan sinkronisasi data BLE. |
-| **Desain Antarmuka** | Tailwind CSS / NativeWind | Styling konsisten dengan visual premium dan fleksibel. |
+| **Grafik & SVG** | `react-native-svg` | Rendering grafik tren (HRV, Vokal, Mood) langsung via SVG native tanpa library charting pihak ketiga. |
+| **Push Notification** | `expo-notifications` | Local push notification terjadwal untuk fitur Reminder (minum obat & olahraga) secara offline. |
+| **Keamanan Biometrik** | `expo-local-authentication` | Akses Face ID / Fingerprint untuk autentikasi layar kunci. |
+| **Penyimpanan Aman** | `expo-secure-store` | Enklave penyimpanan aman untuk menyimpan hash PIN agar tidak terbaca aplikasi lain. |
+| **Desain Antarmuka** | React Native StyleSheet | Styling native berbasis StyleSheet dengan palet warna ungu premium (dark-light theme). |
 
 ---
 
@@ -96,6 +100,46 @@ CREATE TABLE IF NOT EXISTS feature_vectors (
 );
 ```
 
+### C. Tabel `mood_logs` *(Baru — Fitur Mood Tracker)*
+Menyimpan input skala mood harian dari pengguna (1–10).
+```sql
+CREATE TABLE IF NOT EXISTS mood_logs (
+    log_id TEXT PRIMARY KEY,
+    logged_date TEXT NOT NULL,       -- format: YYYY-MM-DD
+    mood_score INTEGER NOT NULL,     -- skala 1-10
+    note TEXT,                       -- catatan opsional
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### D. Tabel `reminders` *(Baru — Fitur Reminder)*
+Menyimpan jadwal pengingat yang dibuat pengguna.
+```sql
+CREATE TABLE IF NOT EXISTS reminders (
+    reminder_id TEXT PRIMARY KEY,
+    label TEXT NOT NULL,             -- contoh: 'Minum Obat Pagi'
+    type TEXT NOT NULL,              -- 'medication' | 'exercise'
+    time TEXT NOT NULL,              -- format: HH:MM
+    repeat_days TEXT NOT NULL,       -- JSON array, contoh: '["Mon","Wed","Fri"]'
+    is_active INTEGER DEFAULT 1,     -- 0 = off, 1 = on
+    notification_id TEXT,            -- ID dari expo-notifications untuk cancel
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### E. Tabel `gamification_progress` *(Baru — Fitur Gamifikasi)*
+Menyimpan akumulasi poin dan badge yang sudah diraih pengguna.
+```sql
+CREATE TABLE IF NOT EXISTS gamification_progress (
+    user_id TEXT PRIMARY KEY DEFAULT 'local_user',
+    total_points INTEGER DEFAULT 0,
+    streak_days INTEGER DEFAULT 0,
+    last_active_date TEXT,           -- format: YYYY-MM-DD
+    badges_unlocked TEXT DEFAULT '[]', -- JSON array nama badge
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
 ---
 
 ## 4. Struktur Folder Project (React Native Tree)
@@ -108,38 +152,54 @@ mobile/
 ├── MOBILE.md                    ← Dokumen ini
 ├── package.json
 ├── tsconfig.json
-├── App.tsx                      ← Entrypoint aplikasi
+├── App.tsx                      ← Entrypoint & navigasi tab utama
 │
-├── src/
-│   ├── assets/                  ← Aset gambar, ikon, dan font
-│   │
-│   ├── components/              ← UI reusable (buttons, cards, charts)
-│   │   ├── BleDeviceCard.tsx
-│   │   ├── MetricChart.tsx
-│   │   └── StatusIndicator.tsx
-│   │
-│   ├── database/                ← Pengelolaan SQLite
-│   │   ├── sqlite.ts            ← Inisialisasi DB & Eksekusi Query
-│   │   └── queries.ts           ← CRUD untuk baselines & feature_vectors
-│   │
-│   ├── services/                ← Background service & BLE
-│   │   ├── bleManager.ts        ← Logika Scan, Connect, dan Listen BLE
-│   │   └── syncService.ts       ← Pengumpul data & buffer BLE ke SQLite
-│   │
-│   ├── circadian/               ← Porting Logika Python -> TypeScript
-│   │   ├── windowClassifier.ts  ← Menentukan window biologis berdasarkan jam lokal HP
-│   │   ├── baselineManager.ts   ← Penerapan EMA (alpha=0.1) harian pada database
-│   │   ├── normalizer.ts        ← Perhitungan z-score instan
-│   │   ├── gatingRules.ts       ← Logika rules GR-01 s/d GR-05
-│   │   └── pipeline.ts          ← Orkestrator sirkadian lokal di mobile
-│   │
-│   ├── store/                   ← State management (Zustand)
-│   │   └── useBleStore.ts       ← Global state untuk status koneksi sensor
-│   │
-│   └── views/                   ← Halaman aplikasi utama
-│       ├── HomeScreen.tsx       ← Visualisasi status real-time & grafik
-│       ├── SettingsScreen.tsx   ← Pengaturan profil & kalibrasi ulang
-│       └── HistoryScreen.tsx    ← Riwayat log sirkadian
+├── assets/
+│   └── ICON_HOMEPAGE/           ← Ikon PNG custom (heart, mic, moon, dll.)
+│
+└── src/
+    ├── components/              ← UI reusable
+    │   ├── BleDeviceCard.tsx
+    │   ├── MetricChart.tsx      ← Komponen grafik SVG tren
+    │   ├── MoodInputModal.tsx   ← Modal input mood harian
+    │   ├── PhaseBanner.tsx      ← Banner kontekstual fase aktif
+    │   ├── StreakBadge.tsx      ← Badge streak harian di Beranda
+    │   └── StatusIndicator.tsx
+    │
+    ├── data/
+    │   └── education_content.json  ← Konten edukasi per fase (bundled, offline)
+    │
+    ├── database/                ← Pengelolaan SQLite
+    │   ├── sqlite.ts            ← Inisialisasi DB & Eksekusi Query
+    │   └── queries.ts           ← CRUD: baselines, feature_vectors,
+    │                               mood_logs, reminders, gamification
+    │
+    ├── services/                ← Background services
+    │   ├── bleManager.ts        ← Logika Scan, Connect, dan Listen BLE
+    │   ├── syncService.ts       ← Buffer BLE ke SQLite
+    │   ├── notificationService.ts ← Scheduling & cancel local push notifications
+    │   ├── gamificationService.ts ← Kalkulasi poin & trigger badge
+    │   └── authService.ts       ← Verifikasi PIN (hash) & biometrik
+    │
+    ├── circadian/               ← Porting Logika Python → TypeScript
+    │   ├── windowClassifier.ts
+    │   ├── baselineManager.ts
+    │   ├── normalizer.ts
+    │   ├── gatingRules.ts
+    │   └── pipeline.ts
+    │
+    ├── store/                   ← State management (Zustand)
+    │   └── useBleStore.ts
+    │
+    └── views/                   ← Halaman aplikasi
+        ├── HomeScreen.tsx       ← Dashboard real-time (Tab Beranda)
+        ├── TrenScreen.tsx       ← Grafik HRV, Vokal & Mood (Tab Tren)
+        ├── SettingsScreen.tsx   ← Pengaturan & Reminder (Tab Pengaturan)
+        ├── HistoryScreen.tsx    ← Riwayat fase sirkadian (Tab Riwayat)
+        ├── EdukasiScreen.tsx    ← Daftar artikel edukasi per fase
+        ├── EdukasiDetailScreen.tsx ← Konten artikel lengkap
+        ├── RewardScreen.tsx     ← Koleksi badge & level gamifikasi
+        └── LockScreen.tsx       ← Layar kunci PIN / Biometrik
 ```
 
 ---
@@ -148,3 +208,29 @@ mobile/
 Untuk mencegah ukuran database SQLite membesar secara eksponensial di perangkat smartphone:
 1. **Aturan Retensi:** Data pada tabel `feature_vectors` yang berumur **lebih dari 90 hari** akan dihapus secara otomatis setiap kali aplikasi diaktifkan pertama kali di hari tersebut.
 2. **Estimasi Penyimpanan:** Penggunaan data selama 1 minggu menghasilkan sekitar **~11.54 MB** (40.320 baris data). Dengan retensi 90 hari, database hanya akan menggunakan memori berkisar **~150 MB** di dalam penyimpanan HP pengguna.
+
+---
+
+## 6. Roadmap Fitur (Client Requirements)
+
+Berdasarkan hasil diskusi dengan klien, berikut adalah roadmap pengembangan 5 fitur tambahan beserta status dan prioritasnya:
+
+| Prioritas | Fitur | Status | Dependency |
+|:---:|:---|:---:|:---|
+| 🔴 Tinggi | **Keamanan Data** — Layar kunci PIN & Biometrik | `[ ] Planned` | `expo-local-authentication`, `expo-secure-store` |
+| 🔴 Tinggi | **Mood Tracker** — Input mood harian + grafik detail di Tren | `[ ] Planned` | SQLite (tabel `mood_logs`) |
+| 🟡 Sedang | **Edukasi** — Konten artikel gejala & pertolongan pertama per fase | `[ ] Planned` | `education_content.json` (bundled) |
+| 🟡 Sedang | **Reminder** — Push notification pengingat obat & olahraga | `[ ] Planned` | `expo-notifications` |
+| 🟢 Rendah | **Gamifikasi** — Poin, badge, & reward sistem kepatuhan | `[ ] Planned` | ⚠️ Tunggu klarifikasi klien |
+
+### Catatan Gamifikasi
+> **Open Question untuk Klien:** Apakah *"unlock feature"* yang dimaksud adalah fitur yang benar-benar terkunci (memerlukan poin untuk membuka akses), atau hanya berupa **visual reward** (badge, level) tanpa memblokir fitur apapun? Jawaban ini sangat menentukan arsitektur dan estimasi waktu pengerjaan.
+
+### Trigger Poin Gamifikasi (Rencana Awal)
+| Aksi Pengguna | Poin |
+|:---|:---:|
+| Buka aplikasi hari ini (streak) | +10 |
+| Input mood harian | +15 |
+| Baca 1 artikel edukasi | +20 |
+| Gelang terhubung (BLE aktif) | +5 |
+| Streak 7 hari berturut-turut | +50 (bonus) |

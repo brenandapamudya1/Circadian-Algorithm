@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import {
   StyleSheet,
@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Image,
+  Animated,
 } from 'react-native';
 import Svg, { Path, Circle, Line, G, Rect, Text as SvgText } from 'react-native-svg';
 
@@ -83,16 +84,26 @@ const TrendChart: React.FC<ChartProps> = ({
   tooltipText = 'Average 50 ms',
   accentColor = '#A88AD3',
 }) => {
+  // ---- Dimension constants ----
+  const topPadding = 42;     // room above chart for tooltip box
+  const bottomPadding = 32;  // room below chart for X labels
+  const paddingLeft = 30;    // left space for Y-axis labels
+  const paddingRight = 18;   // right margin so 'Min' label doesn't clip
+
+  // SVG fills card inner content width.
+  // trenContainer paddingH=20 + chartCard padding=20 each side → total horizontal margin = 80
+  const svgWidth = width - 80;
+  const chartWidth = svgWidth - paddingLeft - paddingRight;
   const chartHeight = 110;
-  const paddingX = 40;
-  const chartWidth = width - 40 - paddingX - 20; // grid offsets
+  const svgHeight = topPadding + chartHeight + bottomPadding;
 
   const days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+  const numSegments = days.length - 1; // 6 segments for 7 days
 
-  // Calculate point coordinates
+  // Map values to SVG coordinates
   const points = values.map((val, idx) => {
-    const x = paddingX + (idx * (chartWidth / 6));
-    const y = chartHeight - (val / maxY) * chartHeight;
+    const x = paddingLeft + (idx * (chartWidth / numSegments));
+    const y = topPadding + chartHeight - (val / maxY) * chartHeight;
     return { x, y };
   });
 
@@ -114,31 +125,38 @@ const TrendChart: React.FC<ChartProps> = ({
 
   const linePath = getSmoothPath(points);
 
-  // Y-axis grid lines at 0, 25, 50, 75 (mapped values)
   const gridValues = [0, 25, 50, 75];
+
+  // Tooltip box clamped within SVG bounds
+  const tipPt = points[tooltipIndex];
+  const tipBoxW = 122;  // wide enough for 'Average 50 ms'
+  const tipBoxH = 22;
+  const tipBoxX = Math.max(paddingLeft, Math.min(tipPt.x - tipBoxW / 2, paddingLeft + chartWidth - tipBoxW));
+  const tipBoxY = Math.max(4, tipPt.y - tipBoxH - 10);
 
   return (
     <View style={styles.chartWrapper}>
-      <Svg height={chartHeight + 40} width={width - 80}>
+      <Svg height={svgHeight} width={svgWidth}>
+
         {/* Horizontal grid lines & Y labels */}
         {gridValues.map((gridVal) => {
-          const yPos = chartHeight - (gridVal / maxY) * chartHeight;
+          const yPos = topPadding + chartHeight - (gridVal / maxY) * chartHeight;
           return (
             <G key={gridVal}>
               <Line
-                x1={paddingX}
+                x1={paddingLeft}
                 y1={yPos}
-                x2={paddingX + chartWidth}
+                x2={paddingLeft + chartWidth}
                 y2={yPos}
-                stroke="#F2EDF7"
+                stroke="#ECDFF6"
                 strokeWidth="1"
               />
               <SvgText
-                x={15}
+                x={paddingLeft - 5}
                 y={yPos + 4}
-                fill="#8A7B9C"
-                fontSize="11"
-                textAnchor="middle"
+                fill="#9E8CB0"
+                fontSize="10"
+                textAnchor="end"
               >
                 {gridVal}
               </SvgText>
@@ -146,67 +164,51 @@ const TrendChart: React.FC<ChartProps> = ({
           );
         })}
 
-        {/* Vertical grid lines at each day */}
-        {days.map((_, idx) => {
-          const xPos = paddingX + (idx * (chartWidth / 6));
-          return (
-            <Line
-              key={idx}
-              x1={xPos}
-              y1={0}
-              x2={xPos}
-              y2={chartHeight}
-              stroke="#F8F6FA"
-              strokeWidth="1"
-            />
-          );
-        })}
-
-        {/* Outer Glow Line */}
+        {/* Outer glow line */}
         <Path
           d={linePath}
           fill="none"
-          stroke={`${accentColor}30`} // 30 is hex for transparency
-          strokeWidth="10"
+          stroke={`${accentColor}35`}
+          strokeWidth="12"
           strokeLinecap="round"
+          strokeLinejoin="round"
         />
 
-        {/* Core Trend Line */}
+        {/* Core trend line */}
         <Path
           d={linePath}
           fill="none"
           stroke={accentColor}
-          strokeWidth="4"
+          strokeWidth="3.5"
           strokeLinecap="round"
+          strokeLinejoin="round"
         />
 
-        {/* Tooltip & Pointer dot */}
+        {/* Tooltip + dot */}
         {showTooltip && (
           <G>
-            {/* Draw tooltip box */}
             <Rect
-              x={points[tooltipIndex].x - 55}
-              y={points[tooltipIndex].y - 35}
-              width={110}
-              height={22}
+              x={tipBoxX}
+              y={tipBoxY}
+              width={tipBoxW}
+              height={tipBoxH}
               rx={6}
               fill="#2E1E43"
             />
             <SvgText
-              x={points[tooltipIndex].x}
-              y={points[tooltipIndex].y - 20}
+              x={tipBoxX + tipBoxW / 2}
+              y={tipBoxY + 14}
               fill="#FFFFFF"
               fontSize="10"
-              fontWeight="bold"
+              fontWeight="normal"
               textAnchor="middle"
             >
               {tooltipText}
             </SvgText>
-            {/* Tooltip pointer dot on the line */}
             <Circle
-              cx={points[tooltipIndex].x}
-              cy={points[tooltipIndex].y}
-              r={6}
+              cx={tipPt.x}
+              cy={tipPt.y}
+              r={5.5}
               fill={accentColor}
               stroke="#FFFFFF"
               strokeWidth="2.5"
@@ -214,36 +216,101 @@ const TrendChart: React.FC<ChartProps> = ({
           </G>
         )}
 
-        {/* X labels (Days) */}
+        {/* X labels */}
         {days.map((day, idx) => {
-          const xPos = paddingX + (idx * (chartWidth / 6));
+          const xPos = paddingLeft + (idx * (chartWidth / numSegments));
           return (
             <SvgText
               key={day}
               x={xPos}
-              y={chartHeight + 22}
-              fill="#2E1E43"
-              fontSize="12"
-              fontWeight="600"
+              y={topPadding + chartHeight + 22}
+              fill="#5A4570"
+              fontSize="11"
+              fontWeight="normal"
               textAnchor="middle"
             >
               {day}
             </SvgText>
           );
         })}
+
       </Svg>
     </View>
   );
 };
+
+// ==================== DATA: ARTIKEL EDUKASI ====================
+interface EduArticle {
+  id: string;
+  title: string;
+  excerpt: string;
+  content: string;
+  sourceName: string;
+  sourceUrl: string;
+  thumbnail: any;
+}
+
+const EDU_ARTICLES: EduArticle[] = [
+  {
+    id: '1',
+    title: 'Fase Manik pada Bipolar, Inilah Ciri-Cirinya',
+    excerpt: 'Fase manik adalah salah satu episode pada gangguan bipolar yang ditandai dengan lonjakan suasana hati secara ekstrem dan peningkatan energi. Pada fase ini, penderitanya bisa merasa sangat percaya diri, terlalu bersemangat, hingga bertindak impulsif.',
+    content: `Fase manik merupakan episode dalam gangguan bipolar yang membuat suasana hati penderitanya meningkat secara ekstrem, sering kali disalahpahami hanya sebagai perasaan gembira atau sangat produktif. Pada fase ini, terjadi lonjakan emosi disertai peningkatan aktivitas dan energi yang signifikan, sehingga perilaku penderita bisa menjadi sulit dikendalikan dan cenderung mengambil keputusan yang berisiko.\n\nAda beberapa gejala khas yang umumnya muncul selama fase manik, di antaranya:\n\n1. Suasana hati yang sangat tinggi (euforia berlebihan) atau menjadi sangat mudah marah secara tiba-tiba terhadap hal sepele.\n2. Berbicara dengan sangat cepat, terus-menerus, dan topiknya meloncat-loncat sehingga sulit diikuti atau dihentikan.\n3. Pikiran yang terlalu aktif dan penuh ide, namun penderita menjadi sulit fokus dan konsentrasinya menurun.\n4. Kebutuhan tidur yang berkurang, di mana penderita tetap merasa segar dan sangat aktif meski hanya tidur beberapa jam saja.\n5. Rasa percaya diri yang berlebihan di luar kewajaran, bahkan merasa memiliki kekuatan atau talenta khusus.\n6. Bertindak impulsif tanpa memikirkan risiko, seperti berbelanja berlebihan hingga menguras tabungan, mengemudi ugal-ugalan, atau berjudi.\n7. Mudah tersulut emosi sehingga sering terlibat dalam perdebatan atau pertengkaran tanpa sebab yang jelas.\n8. Mengalami perubahan libido (dorongan seksual meningkat tajam) serta perubahan nafsu makan yang tidak teratur.\n\nMeskipun penyebab pasti fase manik belum diketahui, ada beberapa faktor risiko yang memicunya, seperti riwayat keluarga, stres berat, jadwal tidur tidak teratur, penyalahgunaan alkohol/obat terlarang, serta penghentian obat tanpa pengawasan dokter.\n\nPenanganan untuk fase manik harus dilakukan secara menyeluruh melalui kombinasi konsultasi dengan psikiater, pemberian obat-obatan (seperti penstabil mood dan antipsikotik), psikoterapi (terapi perilaku kognitif), penyesuaian pola hidup sehat, serta dukungan penuh dari keluarga. Pada kasus yang parah atau membahayakan keselamatan, perawatan rawat inap di rumah sakit jiwa mungkin akan direkomendasikan.`,
+    sourceName: 'Alodokter',
+    sourceUrl: 'https://www.alodokter.com/fase-manik-pada-bipolar-inilah-ciri-cirinya',
+    thumbnail: require('./assets/edu/artikel_1.png'),
+  },
+  {
+    id: '2',
+    title: '5 Langkah Sederhana untuk Mengatasi Depresi bagi Orang Dewasa',
+    excerpt: 'Depresi dapat membuat seseorang merasa tidak bersemangat dan cenderung menarik diri dari lingkungan. Melalui langkah sederhana seperti tetap terhubung dengan orang terdekat, aktif bergerak, dan menjaga pola makan, gejala depresi dapat diredakan secara bertahap.',
+    content: `Depresi merupakan gangguan kesehatan mental yang dapat menguras energi, membuat seseorang merasa sedih berkepanjangan, hingga kehilangan minat pada aktivitas sehari-hari. Walaupun terasa berat, terdapat beberapa langkah sederhana yang bisa dilakukan oleh orang dewasa untuk membantu mengatasi dan memulihkan kondisi dari depresi:\n\n1. Tetap berhubungan dengan orang lain: Saat mengalami depresi, seseorang cenderung mengisolasi diri karena merasa malu atau terlalu lelah untuk bersosialisasi. Padahal, dukungan dari keluarga dan teman terdekat sangat krusial dalam menjaga perspektif yang sehat serta meningkatkan suasana hati.\n\n2. Lakukan hal-hal yang menyenangkan: Dorong diri sendiri untuk meluangkan waktu melakukan hobi atau aktivitas yang disukai sebelumnya, seperti mendengarkan musik atau pergi bersama teman. Langkah ini membantu memicu emosi positif dan mengembalikan energi secara bertahap.\n\n3. Aktif bergerak: Meskipun bangun dari tempat tidur terasa sulit, olahraga teratur terbukti efektif meredakan gejala depresi setara dengan efektivitas obat-obatan tertentu. Cukup mulai dengan aktivitas ringan seperti berjalan kaki selama 10 menit per hari untuk membantu meningkatkan suasana hati.\n\n4. Konsumsi makanan sehat anti depresi: Kurangi konsumsi kafein, alkohol, makanan berlemak, atau makanan dengan pengawet tinggi yang dapat memengaruhi otak. Sebaliknya, tingkatkan suasana hati dengan mengonsumsi makanan yang kaya asam lemak omega-3 (seperti tuna dan salmon) serta makanan tinggi vitamin B yang berperan penting dalam menstabilkan mood.\n\n5. Hubungi profesional jika diperlukan: Jika langkah-langkah mandiri tersebut dirasa belum cukup membantu mengontrol gejala yang dirasakan, segera hubungi profesional kesehatan mental seperti psikolog atau psikiater untuk mendapatkan penanganan dan terapi yang tepat.`,
+    sourceName: 'Halodoc',
+    sourceUrl: 'https://www.halodoc.com/artikel/5-langkah-sederhana-untuk-mengatasi-depresi-bagi-orang-dewasa',
+    thumbnail: require('./assets/edu/artikel_2.png'),
+  },
+  {
+    id: '3',
+    title: 'Bagaimana Sleep Hygiene Dapat Membantu Menstabilkan Suasana Hati pada Gangguan Bipolar',
+    excerpt: 'Gangguan tidur erat kaitannya dengan perubahan suasana hati yang ekstrem pada penderita bipolar. Menerapkan sleep hygiene atau kebiasaan tidur yang sehat terbukti efektif membantu menjaga stabilitas emosi dan mencegah kekambuhan fase manik maupun depresi.',
+    content: `Bagi penderita gangguan bipolar, tidur bukan sekadar waktu untuk beristirahat, melainkan pilar krusial dalam menjaga stabilitas kesehatan mental. Gangguan pada ritme sirkadian (jam biologis tubuh) sering kali menjadi pemicu utama terjadinya transisi suasana hati yang ekstrem. Kurang tidur dapat memicu munculnya fase manik (episode gembira/aktif berlebihan), sementara tidur berlebihan atau pola tidur yang kacau sering kali menyertai fase depresi.\n\nUntuk meminimalkan risiko fluktuasi suasana hati tersebut, penerapan sleep hygiene (kebiasaan tidur yang bersih dan sehat) sangat direkomendasikan sebagai bagian dari manajemen mandiri:\n\n1. Menjaga jadwal tidur yang konsisten: Pergi tidur dan bangun pada jam yang sama setiap hari—termasuk pada akhir pekan—membantu melatih jam biologis tubuh agar tetap sinkron dan stabil.\n\n2. Menciptakan lingkungan kamar yang ideal: Kondisikan ruang tidur agar tetap sejuk, tenang, dan gelap. Penggunaan tirai gelap (blackout curtains) atau masker mata dapat membantu meningkatkan kualitas tidur yang lebih nyenyak.\n\n3. Membatasi paparan layar sebelum tidur: Pancaran sinar biru (blue light) dari ponsel, laptop, atau televisi dapat menghambat produksi melatonin, yaitu hormon yang memicu rasa kantuk. Matikan perangkat elektronik setidaknya 30 hingga 60 menit sebelum tidur.\n\n4. Memperhatikan konsumsi menjelang malam: Hindari makanan berat, kafein, dan alkohol di malam hari. Meskipun alkohol terkadang membuat cepat mengantuk, zat ini justru merusak struktur tidur dan sering kali memicu terbangun di tengah malam.\n\n5. Membangun ritual santai sebelum tidur: Lakukan aktivitas yang menenangkan sebelum berbaring, seperti membaca buku fisik, mandi air hangat, atau melakukan teknik pernapasan dan meditasi ringan untuk memberi sinyal pada tubuh bahwa waktu istirahat telah tiba.\n\nMeskipun sleep hygiene sangat membantu menjaga kestabilan mood, langkah ini merupakan pendukung dan bukan pengganti pengobatan medis utama. Penanganan gangguan bipolar tetap memerlukan kombinasi yang konsisten antara terapi dari profesional kesehatan mental dan konsumsi obat penstabil mood yang diresepkan dokter.`,
+    sourceName: 'The Supportive Care',
+    sourceUrl: 'https://www-thesupportivecare-com.translate.goog/blog/how-sleep-hygiene-can-help-stabilize-mood-in-bipolar-disorder',
+    thumbnail: require('./assets/edu/artikel_3.png'),
+  },
+];
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'Beranda' | 'Tren' | 'Pengaturan' | 'Riwayat'>('Beranda');
   const [trendFilter, setTrendFilter] = useState<'Semua' | 'Minggu Ini' | 'Bulan Ini'>('Semua');
   const [notifFaseOn, setNotifFaseOn] = useState<boolean>(true);
   const [notifHarianOn, setNotifHarianOn] = useState<boolean>(false);
+  const [selectedEduArticle, setSelectedEduArticle] = useState<EduArticle | null>(null);
+
+  // ── Splash Screen State ──
+  const [showSplash, setShowSplash] = useState<boolean>(true);
+  const splashOpacity = useRef(new Animated.Value(1)).current; // start at 1 = langsung terlihat
+
+  useEffect(() => {
+    // After 1000ms: fade-out (300ms) lalu unmount → total tampil ~1.3s
+    const timer = setTimeout(() => {
+      Animated.timing(splashOpacity, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        setShowSplash(false);
+      });
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // ── NOTE: splash rendered as absolute overlay below, NOT early return ──
 
   return (
-    <SafeAreaView style={[
+    <>
+      <SafeAreaView style={[
       styles.container,
       activeTab === 'Tren' ? styles.bgTren
         : activeTab === 'Pengaturan' ? styles.bgPengaturan
@@ -251,7 +318,11 @@ export default function App() {
             : styles.bgBeranda
     ]}>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+        style={{ flex: 1 }}
+      >
 
         {/* ==================== TAB: BERANDA ==================== */}
         {activeTab === 'Beranda' && (
@@ -375,7 +446,10 @@ export default function App() {
             {/* Chart 1: HRV HARIAN */}
             <View style={styles.chartCard}>
               <View style={styles.chartCardHeader}>
-                <Text style={styles.chartCardIcon}>📈</Text>
+                <Image
+                  source={require('./assets/ICON_HOMEPAGE/graph_icon.png')}
+                  style={styles.chartCardIconImg}
+                />
                 <Text style={styles.chartCardTitle}>HRV HARIAN (MS)</Text>
               </View>
               <TrendChart
@@ -391,7 +465,10 @@ export default function App() {
             {/* Chart 2: BIOMARKER VOKAL */}
             <View style={styles.chartCard}>
               <View style={styles.chartCardHeader}>
-                <Text style={styles.chartCardIcon}>📈</Text>
+                <Image
+                  source={require('./assets/ICON_HOMEPAGE/graph_icon.png')}
+                  style={styles.chartCardIconImg}
+                />
                 <Text style={styles.chartCardTitle}>BIOMARKER VOKAL</Text>
               </View>
               <TrendChart
@@ -539,6 +616,70 @@ export default function App() {
               </View>
             </View>
 
+            {/* ── Artikel Edukasi Section ── */}
+            {selectedEduArticle === null ? (
+              <View style={styles.eduSection}>
+                <Text style={styles.eduSectionTitle}>Artikel Edukasi</Text>
+                <Text style={styles.eduSectionSubtitle}>Pelajari lebih lanjut tentang fase bipolar</Text>
+
+                {EDU_ARTICLES.map((article) => (
+                  <TouchableOpacity
+                    key={article.id}
+                    style={styles.eduCard}
+                    onPress={() => setSelectedEduArticle(article)}
+                    activeOpacity={0.88}
+                  >
+                    <Image
+                      source={article.thumbnail}
+                      style={styles.eduThumbnail}
+                      resizeMode="cover"
+                    />
+                    <View style={styles.eduCardBody}>
+                      <Text style={styles.eduCardTitle} numberOfLines={2}>{article.title}</Text>
+                      <Text style={styles.eduCardExcerpt} numberOfLines={3}>{article.excerpt}</Text>
+                      <View style={styles.eduCardSource}>
+                        <View style={styles.eduSourceDot} />
+                        <Text style={styles.eduSourceName}>{article.sourceName}</Text>
+                        <Text style={styles.eduSourceUrl} numberOfLines={1}>{article.sourceUrl}</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              /* ── Detail View ── */
+              <View style={styles.eduDetail}>
+                <TouchableOpacity
+                  style={styles.eduDetailBack}
+                  onPress={() => setSelectedEduArticle(null)}
+                >
+                  <Text style={styles.eduDetailBackText}>← Kembali</Text>
+                </TouchableOpacity>
+
+                <Image
+                  source={selectedEduArticle.thumbnail}
+                  style={styles.eduDetailThumbnail}
+                  resizeMode="cover"
+                />
+
+                <View style={styles.eduDetailBody}>
+                  <Text style={styles.eduDetailTitle}>{selectedEduArticle.title}</Text>
+
+                  <View style={styles.eduDetailSourceRow}>
+                    <View style={styles.eduSourceDot} />
+                    <Text style={styles.eduDetailSourceName}>{selectedEduArticle.sourceName}</Text>
+                  </View>
+
+                  <Text style={styles.eduDetailContent}>{selectedEduArticle.content}</Text>
+
+                  <View style={styles.eduDetailUrlRow}>
+                    <Text style={styles.eduDetailUrlLabel}>Sumber: </Text>
+                    <Text style={styles.eduDetailUrl} numberOfLines={2}>{selectedEduArticle.sourceUrl}</Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
           </View>
         )}
 
@@ -579,6 +720,19 @@ export default function App() {
         </TouchableOpacity>
       </View>
     </SafeAreaView>
+
+      {/* ── Splash Overlay (absolute, fades out to reveal main app) ── */}
+      {showSplash && (
+        <Animated.View style={[styles.splashContainer, styles.splashAbsolute, { opacity: splashOpacity }]}>
+          <StatusBar style="dark" />
+          <Image
+            source={require('./assets/icon_app_trans.png')}
+            style={styles.splashLogo}
+            resizeMode="contain"
+          />
+        </Animated.View>
+      )}
+    </>
   );
 }
 
@@ -594,7 +748,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#A88AD3', // Medium purple background for full screen on Tren
   },
   scrollContainer: {
-    paddingBottom: 110,
+    paddingBottom: 20,
   },
 
   // ==================== STYLES: BERANDA ====================
@@ -857,6 +1011,11 @@ const styles = StyleSheet.create({
     marginRight: 8,
     color: '#2E1E43',
   },
+  chartCardIconImg: {
+    width: 22,
+    height: 22,
+    marginRight: 8,
+  },
   chartCardTitle: {
     color: '#2E1E43',
     fontSize: 16,
@@ -901,10 +1060,6 @@ const styles = StyleSheet.create({
 
   // ==================== STYLES: BOTTOM NAV ====================
   navBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     height: 75,
     backgroundColor: '#D5C6E6',
     flexDirection: 'row',
@@ -1148,6 +1303,166 @@ const styles = StyleSheet.create({
     color: '#8A7B9C',
     fontSize: 12,
     fontWeight: '500',
+  },
+
+  // ==================== STYLES: SPLASH SCREEN ====================
+  splashContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  splashLogo: {
+    width: width * 0.62,
+    height: width * 0.85,
+  },
+  splashAbsolute: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
+  },
+
+  // ==================== STYLES: EDUKASI ====================
+  eduSection: {
+    marginTop: 28,
+    paddingBottom: 8,
+  },
+  eduSectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#2E1E43',
+    marginBottom: 2,
+  },
+  eduSectionSubtitle: {
+    fontSize: 12,
+    color: '#8A7B9C',
+    marginBottom: 16,
+    fontWeight: '400',
+  },
+  eduCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    overflow: 'hidden',
+    marginBottom: 16,
+    shadowColor: '#A88AD3',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  eduThumbnail: {
+    width: '100%',
+    height: 170,
+    backgroundColor: '#EDE5F7',
+  },
+  eduCardBody: {
+    padding: 14,
+  },
+  eduCardTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1A1A2E',
+    marginBottom: 6,
+    lineHeight: 21,
+  },
+  eduCardExcerpt: {
+    fontSize: 13,
+    color: '#5A4570',
+    lineHeight: 19,
+    marginBottom: 10,
+  },
+  eduCardSource: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  eduSourceDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#A88AD3',
+  },
+  eduSourceName: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#2E1E43',
+  },
+  eduSourceUrl: {
+    fontSize: 11,
+    color: '#9B8CB0',
+    flex: 1,
+  },
+
+  // \u2500\u2500 Detail View \u2500\u2500
+  eduDetail: {
+    marginTop: 12,
+    paddingBottom: 20,
+  },
+  eduDetailBack: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+  },
+  eduDetailBackText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#7B5EA7',
+  },
+  eduDetailThumbnail: {
+    width: '100%',
+    height: 200,
+    borderRadius: 14,
+    backgroundColor: '#EDE5F7',
+    marginBottom: 16,
+  },
+  eduDetailBody: {
+    paddingHorizontal: 2,
+  },
+  eduDetailTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1A1A2E',
+    lineHeight: 25,
+    marginBottom: 10,
+  },
+  eduDetailSourceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 16,
+  },
+  eduDetailSourceName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#7B5EA7',
+  },
+  eduDetailContent: {
+    fontSize: 14,
+    color: '#3A2E4A',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  eduDetailUrlRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    backgroundColor: '#F3EEF9',
+    borderRadius: 8,
+    padding: 10,
+  },
+  eduDetailUrlLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#5A4570',
+  },
+  eduDetailUrl: {
+    fontSize: 12,
+    color: '#7B5EA7',
+    flex: 1,
   },
 });
 
