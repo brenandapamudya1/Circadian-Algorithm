@@ -10,6 +10,8 @@ import {
   Dimensions,
   Image,
   Animated,
+  TextInput,
+  Platform,
 } from 'react-native';
 import Svg, { Path, Circle, Line, G, Rect, Text as SvgText } from 'react-native-svg';
 
@@ -287,6 +289,126 @@ export default function App() {
   const [notifHarianOn, setNotifHarianOn] = useState<boolean>(false);
   const [selectedEduArticle, setSelectedEduArticle] = useState<EduArticle | null>(null);
 
+  // ── Web Specific Title & Favicon Setup ──
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      document.title = 'Bypolizer';
+      
+      try {
+        const iconUri = Image.resolveAssetSource(require('./assets/icon_app.png')).uri;
+        
+        // Update or create standard favicon link
+        let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'icon';
+          document.getElementsByTagName('head')[0].appendChild(link);
+        }
+        link.href = iconUri;
+        link.type = 'image/png';
+        
+        // Update or create apple-touch-icon link
+        let appleLink = document.querySelector("link[rel='apple-touch-icon']") as HTMLLinkElement;
+        if (!appleLink) {
+          appleLink = document.createElement('link');
+          appleLink.rel = 'apple-touch-icon';
+          document.getElementsByTagName('head')[0].appendChild(appleLink);
+        }
+        appleLink.href = iconUri;
+      } catch (err) {
+        console.warn('Gagal memuat dynamic favicon:', err);
+      }
+    }
+  }, []);
+
+  // ── Reminder State & Interface ──
+  interface Reminder {
+    id: string;
+    label: string;
+    time: string;
+    active: boolean;
+    type: 'obat' | 'olahraga';
+  }
+
+  const [reminders, setReminders] = useState<Reminder[]>([
+    { id: '1', label: 'Minum Obat Pagi (Lithium)', time: '07:00', active: true, type: 'obat' },
+    { id: '2', label: 'Olahraga Sore (Jalan Kaki)', time: '16:30', active: true, type: 'olahraga' },
+    { id: '3', label: 'Minum Obat Malam', time: '21:00', active: false, type: 'obat' },
+  ]);
+
+  // Form State untuk tambah manual
+  const [showAddForm, setShowAddForm] = useState<boolean>(false);
+  const [newLabel, setNewLabel] = useState<string>('');
+  const [newTime, setNewTime] = useState<string>('08:00');
+  const [newType, setNewType] = useState<'obat' | 'olahraga'>('obat');
+
+  const toggleReminder = (id: string) => {
+    setReminders(prev => prev.map(rem => rem.id === id ? { ...rem, active: !rem.active } : rem));
+  };
+
+  const handleSaveReminder = () => {
+    if (!newLabel.trim()) return;
+    const newRem: Reminder = {
+      id: Date.now().toString(),
+      label: newLabel,
+      time: newTime,
+      active: true,
+      type: newType,
+    };
+    setReminders(prev => [...prev, newRem]);
+    // Reset Form
+    setNewLabel('');
+    setNewTime('08:00');
+    setNewType('obat');
+    setShowAddForm(false);
+  };
+
+  const handleDeleteReminder = (id: string) => {
+    setReminders(prev => prev.filter(rem => rem.id !== id));
+  };
+
+  // ── Lock Screen State ──
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
+  const [pinVerified, setPinVerified] = useState<boolean>(false); // Mulai render background app
+  const lockOpacity = useRef(new Animated.Value(1)).current;
+  const [pinInput, setPinInput] = useState<string>('');
+  const [pinError, setPinError] = useState<boolean>(false);
+  const DEMO_PIN = '1234'; // PIN demo untuk presentasi
+
+  const handlePinPress = (digit: string) => {
+    if (pinInput.length >= 4) return;
+    const newPin = pinInput + digit;
+    setPinInput(newPin);
+    setPinError(false);
+
+    if (newPin.length === 4) {
+      if (newPin === DEMO_PIN) {
+        setPinVerified(true); // Render Main App di background
+        setTimeout(() => {
+          Animated.timing(lockOpacity, {
+            toValue: 0,
+            duration: 350,
+            useNativeDriver: true,
+          }).start(() => {
+            setIsUnlocked(true);
+            setPinInput('');
+          });
+        }, 150);
+      } else {
+        setPinError(true);
+        setTimeout(() => {
+          setPinInput('');
+          setPinError(false);
+        }, 600);
+      }
+    }
+  };
+
+  const handlePinDelete = () => {
+    setPinInput((prev) => prev.slice(0, -1));
+    setPinError(false);
+  };
+
   // ── Splash Screen State ──
   const [showSplash, setShowSplash] = useState<boolean>(true);
   const splashOpacity = useRef(new Animated.Value(1)).current; // start at 1 = langsung terlihat
@@ -306,420 +428,604 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  // ── NOTE: splash rendered as absolute overlay below, NOT early return ──
+  // ──_ NOTE: splash rendered as absolute overlay below, NOT early return ──
 
   return (
     <>
-      <SafeAreaView style={[
-      styles.container,
-      activeTab === 'Tren' ? styles.bgTren
-        : activeTab === 'Pengaturan' ? styles.bgPengaturan
-          : activeTab === 'Riwayat' ? styles.bgRiwayat
-            : styles.bgBeranda
-    ]}>
-      <StatusBar style="dark" />
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
-        style={{ flex: 1 }}
-      >
+      {/* ── Main App (Rendered in background when transitioning/unlocked) ── */}
+      {(isUnlocked || pinVerified) && (
+        <SafeAreaView style={[
+          styles.container,
+          activeTab === 'Tren' ? styles.bgTren
+            : activeTab === 'Pengaturan' ? styles.bgPengaturan
+              : activeTab === 'Riwayat' ? styles.bgRiwayat
+                : styles.bgBeranda
+        ]}>
 
-        {/* ==================== TAB: BERANDA ==================== */}
-        {activeTab === 'Beranda' && (
-          <View>
-            {/* Header Section */}
-            <View style={styles.header}>
-              <Text style={styles.headerTitle}>Selamat pagi, User!</Text>
-              <Text style={styles.headerSubtitle}>Bagaimana hari ini?</Text>
-            </View>
+          <ScrollView
+            contentContainerStyle={styles.scrollContainer}
+            showsVerticalScrollIndicator={false}
+            style={{ flex: 1 }}
+          >
 
-            {/* Content Area */}
-            <View style={styles.content}>
-              {/* FASE SAAT INI Card */}
-              <View style={styles.phaseCard}>
-                <View style={styles.phaseCardLeft}>
-                  <Text style={styles.phaseCardLabel}>FASE SAAT INI</Text>
-                  <Text style={styles.phaseCardValue}>Stabil</Text>
-                </View>
-                <View style={styles.phaseCardRight}>
-                  <Text style={styles.phaseCardDurationLabel}>Berlangsung</Text>
-                  <Text style={styles.phaseCardDurationValue}>18 jam</Text>
-                </View>
-              </View>
-
-              {/* Grid Metrics */}
-              <View style={styles.grid}>
-                <View style={styles.gridCard}>
-                  <Image source={require('./assets/ICON_HOMEPAGE/heart_icon.png')} style={styles.gridIconImg} />
-                  <Text style={styles.gridCardLabel}>HRV</Text>
-                  <Text style={styles.gridCardValue}>54 ms</Text>
+            {/* ==================== TAB: BERANDA ==================== */}
+            {activeTab === 'Beranda' && (
+              <View>
+                {/* Header Section */}
+                <View style={styles.header}>
+                  <Text style={styles.headerTitle}>Selamat pagi, User!</Text>
+                  <Text style={styles.headerSubtitle}>Bagaimana hari ini?</Text>
                 </View>
 
-                <View style={styles.gridCard}>
-                  <Image source={require('./assets/ICON_HOMEPAGE/mic_icon.png')} style={styles.gridIconImg} />
-                  <Text style={styles.gridCardLabel}>Biomarker vokal</Text>
-                  <Text style={styles.gridCardValue}>0.74</Text>
-                </View>
-
-                <View style={styles.gridCard}>
-                  <Image source={require('./assets/ICON_HOMEPAGE/moon_icon.png')} style={styles.gridIconImg} />
-                  <Text style={styles.gridCardLabel}>TIDUR</Text>
-                  <Text style={styles.gridCardValue}>7.1 jam</Text>
-                </View>
-
-                <View style={styles.gridCard}>
-                  <Image source={require('./assets/ICON_HOMEPAGE/walking_icon.png')} style={styles.gridIconImg} />
-                  <Text style={styles.gridCardLabel}>Langkah hari ini</Text>
-                  <Text style={styles.gridCardValue}>4.2k</Text>
-                </View>
-              </View>
-
-              {/* Warning / Alert Panel */}
-              <View style={styles.alertCard}>
-                <View style={styles.alertIconContainer}>
-                  <Image source={require('./assets/ICON_HOMEPAGE/warning_icon.png')} style={styles.alertIconImg} />
-                </View>
-                <View style={styles.alertTextContainer}>
-                  <Text style={styles.alertTitle}>Pitch suara meningkat</Text>
-                  <Text style={styles.alertDesc}>
-                    Naik 12% dari kemarin pagi. Pantau aktivitas hari ini.
-                  </Text>
-                </View>
-              </View>
-
-              {/* Progress Mood Tracker */}
-              <View style={styles.progressSection}>
-                <Text style={styles.progressTitle}>Progress Pengisian Mood Tracker Minggu Ini</Text>
-                <View style={styles.ringsContainer}>
-                  <ProgressRing day="M" percentage={100} label="100%" />
-                  <ProgressRing day="S" percentage={80} label="80%" />
-                  <ProgressRing day="S" percentage={50} label="50%" />
-                  <ProgressRing day="R" percentage={30} label="30%" />
-                  <ProgressRing day="K" percentage={10} label="10%" />
-                  <ProgressRing day="J" percentage={0} label="0%" />
-                  <ProgressRing day="S" percentage={0} label="0%" />
-                </View>
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* ==================== TAB: TREN ==================== */}
-        {activeTab === 'Tren' && (
-          <View style={styles.trenContainer}>
-            {/* Header */}
-            <View style={styles.trenHeader}>
-              <Text style={styles.trenHeaderTitle}>Tren Hari Ini</Text>
-              <Text style={styles.trenHeaderSubtitle}>Data 7 Hari Terakhir</Text>
-            </View>
-
-            {/* Segmented Control Pill */}
-            <View style={styles.segmentedControl}>
-              <TouchableOpacity
-                style={[styles.segmentBtn, trendFilter === 'Semua' && styles.segmentBtnActive]}
-                onPress={() => setTrendFilter('Semua')}
-              >
-                <Text style={[styles.segmentText, trendFilter === 'Semua' ? styles.segmentTextActive : styles.segmentTextInactive]}>
-                  Semua
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.segmentBtn, trendFilter === 'Minggu Ini' && styles.segmentBtnActive]}
-                onPress={() => setTrendFilter('Minggu Ini')}
-              >
-                <Text style={[styles.segmentText, trendFilter === 'Minggu Ini' ? styles.segmentTextActive : styles.segmentTextInactive]}>
-                  Minggu Ini
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.segmentBtn, trendFilter === 'Bulan Ini' && styles.segmentBtnActive]}
-                onPress={() => setTrendFilter('Bulan Ini')}
-              >
-                <Text style={[styles.segmentText, trendFilter === 'Bulan Ini' ? styles.segmentTextActive : styles.segmentTextInactive]}>
-                  Bulan Ini
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Chart 1: HRV HARIAN */}
-            <View style={styles.chartCard}>
-              <View style={styles.chartCardHeader}>
-                <Image
-                  source={require('./assets/ICON_HOMEPAGE/graph_icon.png')}
-                  style={styles.chartCardIconImg}
-                />
-                <Text style={styles.chartCardTitle}>HRV HARIAN (MS)</Text>
-              </View>
-              <TrendChart
-                values={[30, 42, 53, 64, 46, 38, 32]}
-                maxY={75}
-                showTooltip={true}
-                tooltipIndex={3}
-                tooltipText="Average 50 ms"
-                accentColor="#A88AD3"
-              />
-            </View>
-
-            {/* Chart 2: BIOMARKER VOKAL */}
-            <View style={styles.chartCard}>
-              <View style={styles.chartCardHeader}>
-                <Image
-                  source={require('./assets/ICON_HOMEPAGE/graph_icon.png')}
-                  style={styles.chartCardIconImg}
-                />
-                <Text style={styles.chartCardTitle}>BIOMARKER VOKAL</Text>
-              </View>
-              <TrendChart
-                values={[23, 48, 46, 42, 32, 29, 24]}
-                maxY={75}
-                showTooltip={false}
-                accentColor="#4C307A"
-              />
-            </View>
-
-            {/* Stats Overview Grid */}
-            <View style={styles.statsGrid}>
-              <View style={styles.statCard}>
-                <Text style={styles.statLabel}>Rata-Rata HRV</Text>
-                <Text style={styles.statValue}>50 <Text style={styles.statUnit}>ms</Text></Text>
-              </View>
-
-              <View style={styles.statCard}>
-                <Text style={styles.statLabel}>Fase Stabil</Text>
-                <Text style={styles.statValue}>5 <Text style={styles.statUnit}>hari</Text></Text>
-              </View>
-            </View>
-          </View>
-        )}
-
-        {/* ==================== TAB: PENGATURAN ==================== */}
-        {activeTab === 'Pengaturan' && (
-          <View style={styles.pengaturanContainer}>
-
-            {/* Header */}
-            <Text style={styles.pengaturanTitle}>Pengaturan</Text>
-
-            {/* Profile Card */}
-            <View style={styles.profileCard}>
-              <View style={styles.avatarCircle}>
-                <Text style={styles.avatarEmoji}>👤</Text>
-              </View>
-              <Text style={styles.profileName}>Kim Jennie</Text>
-              <Text style={styles.profileRole}>Pasien · BIPOLYZER</Text>
-            </View>
-
-            {/* Section: Perangkat */}
-            <View style={styles.settingSection}>
-              <Text style={styles.settingSectionLabel}>PERANGKAT</Text>
-              <TouchableOpacity style={styles.settingRow}>
-                <View style={styles.settingRowLeft}>
-                  <Text style={styles.settingRowTitle}>Koneksi Gelang</Text>
-                  <Text style={styles.settingRowSub}>BIPOLYZER-001 · terhubung</Text>
-                </View>
-                <Text style={styles.settingRowIcon}>⑂</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Section: Notifikasi */}
-            <View style={styles.settingSection}>
-              <Text style={styles.settingSectionLabel}>NOTIFIKASI</Text>
-
-              <View style={styles.settingRow}>
-                <View style={styles.settingRowLeft}>
-                  <Text style={styles.settingRowTitle}>Peringatan Fase</Text>
-                  <Text style={styles.settingRowSub}>Notifikasi deteksi anomali</Text>
-                </View>
-                <TouchableOpacity
-                  style={[styles.toggle, notifFaseOn ? styles.toggleOn : styles.toggleOff]}
-                  onPress={() => setNotifFaseOn(!notifFaseOn)}
-                >
-                  <View style={[styles.toggleThumb, notifFaseOn ? styles.toggleThumbOn : styles.toggleThumbOff]} />
-                </TouchableOpacity>
-              </View>
-
-              <View style={[styles.settingRow, styles.settingRowNoBorder]}>
-                <View style={styles.settingRowLeft}>
-                  <Text style={styles.settingRowTitle}>Pengingat Harian</Text>
-                  <Text style={styles.settingRowSub}>Cek kondisi pagi hari</Text>
-                </View>
-                <TouchableOpacity
-                  style={[styles.toggle, notifHarianOn ? styles.toggleOn : styles.toggleOff]}
-                  onPress={() => setNotifHarianOn(!notifHarianOn)}
-                >
-                  <View style={[styles.toggleThumb, notifHarianOn ? styles.toggleThumbOn : styles.toggleThumbOff]} />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Emergency Contact */}
-            <View style={styles.settingSection}>
-              <TouchableOpacity style={[styles.settingRow, styles.settingRowNoBorder]}>
-                <Text style={styles.settingRowTitleBold}>Kontak darurat</Text>
-                <Text style={styles.settingRowChevron}>›</Text>
-              </TouchableOpacity>
-            </View>
-
-          </View>
-        )}
-
-        {/* ==================== TAB: RIWAYAT ==================== */}
-        {activeTab === 'Riwayat' && (
-          <View style={styles.riwayatContainer}>
-
-            {/* Header */}
-            <Text style={styles.riwayatTitle}>Riwayat Deteksi</Text>
-            <Text style={styles.riwayatSubtitle}>Semua Catatan Fase</Text>
-
-            {/* Entry: Fase Stabil (hari ini) */}
-            <View style={styles.riwayatCard}>
-              <View style={[styles.riwayatIcon, styles.riwayatIconStabil]}>
-                <Text style={styles.riwayatIconText}>✓</Text>
-              </View>
-              <View style={styles.riwayatCardText}>
-                <Text style={styles.riwayatCardTitle}>Fase Stabil</Text>
-                <Text style={styles.riwayatCardSub}>Hari ini · berlangsung 18 jam</Text>
-              </View>
-            </View>
-
-            {/* Entry: Potensi Manik Ringan */}
-            <View style={styles.riwayatCard}>
-              <View style={[styles.riwayatIcon, styles.riwayatIconManik]}>
-                <Text style={styles.riwayatIconText}>⚠</Text>
-              </View>
-              <View style={styles.riwayatCardText}>
-                <Text style={styles.riwayatCardTitle}>Potensi Manik Ringan</Text>
-                <Text style={styles.riwayatCardSub}>Kam, 19 Jun · 6 jam</Text>
-              </View>
-            </View>
-
-            {/* Entry: Fase Stabil (lalu) */}
-            <View style={styles.riwayatCard}>
-              <View style={[styles.riwayatIcon, styles.riwayatIconStabil]}>
-                <Text style={styles.riwayatIconText}>✓</Text>
-              </View>
-              <View style={styles.riwayatCardText}>
-                <Text style={styles.riwayatCardTitle}>Fase Stabil</Text>
-                <Text style={styles.riwayatCardSub}>Sel–Rab, 10–18 Jun · 8 hari</Text>
-              </View>
-            </View>
-
-            {/* Entry: Potensi Depresi */}
-            <View style={styles.riwayatCard}>
-              <View style={[styles.riwayatIcon, styles.riwayatIconDepresi]}>
-                <Text style={styles.riwayatIconText}>☹</Text>
-              </View>
-              <View style={styles.riwayatCardText}>
-                <Text style={styles.riwayatCardTitle}>Potensi Depresi</Text>
-                <Text style={styles.riwayatCardSub}>Sen, 09 Jun · 1 hari</Text>
-              </View>
-            </View>
-
-            {/* ── Artikel Edukasi Section ── */}
-            {selectedEduArticle === null ? (
-              <View style={styles.eduSection}>
-                <Text style={styles.eduSectionTitle}>Artikel Edukasi</Text>
-                <Text style={styles.eduSectionSubtitle}>Pelajari lebih lanjut tentang fase bipolar</Text>
-
-                {EDU_ARTICLES.map((article) => (
-                  <TouchableOpacity
-                    key={article.id}
-                    style={styles.eduCard}
-                    onPress={() => setSelectedEduArticle(article)}
-                    activeOpacity={0.88}
-                  >
-                    <Image
-                      source={article.thumbnail}
-                      style={styles.eduThumbnail}
-                      resizeMode="cover"
-                    />
-                    <View style={styles.eduCardBody}>
-                      <Text style={styles.eduCardTitle} numberOfLines={2}>{article.title}</Text>
-                      <Text style={styles.eduCardExcerpt} numberOfLines={3}>{article.excerpt}</Text>
-                      <View style={styles.eduCardSource}>
-                        <View style={styles.eduSourceDot} />
-                        <Text style={styles.eduSourceName}>{article.sourceName}</Text>
-                        <Text style={styles.eduSourceUrl} numberOfLines={1}>{article.sourceUrl}</Text>
-                      </View>
+                {/* Content Area */}
+                <View style={styles.content}>
+                  {/* FASE SAAT INI Card */}
+                  <View style={styles.phaseCard}>
+                    <View style={styles.phaseCardLeft}>
+                      <Text style={styles.phaseCardLabel}>FASE SAAT INI</Text>
+                      <Text style={styles.phaseCardValue}>Stabil</Text>
                     </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ) : (
-              /* ── Detail View ── */
-              <View style={styles.eduDetail}>
-                <TouchableOpacity
-                  style={styles.eduDetailBack}
-                  onPress={() => setSelectedEduArticle(null)}
-                >
-                  <Text style={styles.eduDetailBackText}>← Kembali</Text>
-                </TouchableOpacity>
-
-                <Image
-                  source={selectedEduArticle.thumbnail}
-                  style={styles.eduDetailThumbnail}
-                  resizeMode="cover"
-                />
-
-                <View style={styles.eduDetailBody}>
-                  <Text style={styles.eduDetailTitle}>{selectedEduArticle.title}</Text>
-
-                  <View style={styles.eduDetailSourceRow}>
-                    <View style={styles.eduSourceDot} />
-                    <Text style={styles.eduDetailSourceName}>{selectedEduArticle.sourceName}</Text>
+                    <View style={styles.phaseCardRight}>
+                      <Text style={styles.phaseCardDurationLabel}>Berlangsung</Text>
+                      <Text style={styles.phaseCardDurationValue}>18 jam</Text>
+                    </View>
                   </View>
 
-                  <Text style={styles.eduDetailContent}>{selectedEduArticle.content}</Text>
+                  {/* Grid Metrics */}
+                  <View style={styles.grid}>
+                    <View style={styles.gridCard}>
+                      <Image source={require('./assets/ICON_HOMEPAGE/heart_icon.png')} style={styles.gridIconImg} />
+                      <Text style={styles.gridCardLabel}>HRV</Text>
+                      <Text style={styles.gridCardValue}>54 ms</Text>
+                    </View>
 
-                  <View style={styles.eduDetailUrlRow}>
-                    <Text style={styles.eduDetailUrlLabel}>Sumber: </Text>
-                    <Text style={styles.eduDetailUrl} numberOfLines={2}>{selectedEduArticle.sourceUrl}</Text>
+                    <View style={styles.gridCard}>
+                      <Image source={require('./assets/ICON_HOMEPAGE/mic_icon.png')} style={styles.gridIconImg} />
+                      <Text style={styles.gridCardLabel}>Biomarker vokal</Text>
+                      <Text style={styles.gridCardValue}>0.74</Text>
+                    </View>
+
+                    <View style={styles.gridCard}>
+                      <Image source={require('./assets/ICON_HOMEPAGE/moon_icon.png')} style={styles.gridIconImg} />
+                      <Text style={styles.gridCardLabel}>TIDUR</Text>
+                      <Text style={styles.gridCardValue}>7.1 jam</Text>
+                    </View>
+
+                    <View style={styles.gridCard}>
+                      <Image source={require('./assets/ICON_HOMEPAGE/walking_icon.png')} style={styles.gridIconImg} />
+                      <Text style={styles.gridCardLabel}>Langkah hari ini</Text>
+                      <Text style={styles.gridCardValue}>4.2k</Text>
+                    </View>
+                  </View>
+
+                  {/* Warning / Alert Panel */}
+                  <View style={styles.alertCard}>
+                    <View style={styles.alertIconContainer}>
+                      <Image source={require('./assets/ICON_HOMEPAGE/warning_icon.png')} style={styles.alertIconImg} />
+                    </View>
+                    <View style={styles.alertTextContainer}>
+                      <Text style={styles.alertTitle}>Pitch suara meningkat</Text>
+                      <Text style={styles.alertDesc}>
+                        Naik 12% dari kemarin pagi. Pantau aktivitas hari ini.
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Progress Mood Tracker */}
+                  <View style={styles.progressSection}>
+                    <Text style={styles.progressTitle}>Progress Pengisian Mood Tracker Minggu Ini</Text>
+                    <View style={styles.ringsContainer}>
+                      <ProgressRing day="M" percentage={100} label="100%" />
+                      <ProgressRing day="S" percentage={80} label="80%" />
+                      <ProgressRing day="S" percentage={50} label="50%" />
+                      <ProgressRing day="R" percentage={30} label="30%" />
+                      <ProgressRing day="K" percentage={10} label="10%" />
+                      <ProgressRing day="J" percentage={0} label="0%" />
+                      <ProgressRing day="S" percentage={0} label="0%" />
+                    </View>
                   </View>
                 </View>
               </View>
             )}
 
+            {/* ==================== TAB: TREN ==================== */}
+            {activeTab === 'Tren' && (
+              <View style={styles.trenContainer}>
+                {/* Header */}
+                <View style={styles.trenHeader}>
+                  <Text style={styles.trenHeaderTitle}>Tren Hari Ini</Text>
+                  <Text style={styles.trenHeaderSubtitle}>Data 7 Hari Terakhir</Text>
+                </View>
+
+                {/* Segmented Control Pill */}
+                <View style={styles.segmentedControl}>
+                  <TouchableOpacity
+                    style={[styles.segmentBtn, trendFilter === 'Semua' && styles.segmentBtnActive]}
+                    onPress={() => setTrendFilter('Semua')}
+                  >
+                    <Text style={[styles.segmentText, trendFilter === 'Semua' ? styles.segmentTextActive : styles.segmentTextInactive]}>
+                      Semua
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.segmentBtn, trendFilter === 'Minggu Ini' && styles.segmentBtnActive]}
+                    onPress={() => setTrendFilter('Minggu Ini')}
+                  >
+                    <Text style={[styles.segmentText, trendFilter === 'Minggu Ini' ? styles.segmentTextActive : styles.segmentTextInactive]}>
+                      Minggu Ini
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.segmentBtn, trendFilter === 'Bulan Ini' && styles.segmentBtnActive]}
+                    onPress={() => setTrendFilter('Bulan Ini')}
+                  >
+                    <Text style={[styles.segmentText, trendFilter === 'Bulan Ini' ? styles.segmentTextActive : styles.segmentTextInactive]}>
+                      Bulan Ini
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Chart 1: HRV HARIAN */}
+                <View style={styles.chartCard}>
+                  <View style={styles.chartCardHeader}>
+                    <Image
+                      source={require('./assets/ICON_HOMEPAGE/graph_icon.png')}
+                      style={styles.chartCardIconImg}
+                    />
+                    <Text style={styles.chartCardTitle}>HRV HARIAN (MS)</Text>
+                  </View>
+                  <TrendChart
+                    values={[30, 42, 53, 64, 46, 38, 32]}
+                    maxY={75}
+                    showTooltip={true}
+                    tooltipIndex={3}
+                    tooltipText="Average 50 ms"
+                    accentColor="#A88AD3"
+                  />
+                </View>
+
+                {/* Chart 2: BIOMARKER VOKAL */}
+                <View style={styles.chartCard}>
+                  <View style={styles.chartCardHeader}>
+                    <Image
+                      source={require('./assets/ICON_HOMEPAGE/graph_icon.png')}
+                      style={styles.chartCardIconImg}
+                    />
+                    <Text style={styles.chartCardTitle}>BIOMARKER VOKAL</Text>
+                  </View>
+                  <TrendChart
+                    values={[23, 48, 46, 42, 32, 29, 24]}
+                    maxY={75}
+                    showTooltip={false}
+                    accentColor="#4C307A"
+                  />
+                </View>
+
+                {/* Stats Overview Grid */}
+                <View style={styles.statsGrid}>
+                  <View style={styles.statCard}>
+                    <Text style={styles.statLabel}>Rata-Rata HRV</Text>
+                    <Text style={styles.statValue}>50 <Text style={styles.statUnit}>ms</Text></Text>
+                  </View>
+
+                  <View style={styles.statCard}>
+                    <Text style={styles.statLabel}>Fase Stabil</Text>
+                    <Text style={styles.statValue}>5 <Text style={styles.statUnit}>hari</Text></Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* ==================== TAB: PENGATURAN ==================== */}
+            {activeTab === 'Pengaturan' && (
+              <View style={styles.pengaturanContainer}>
+
+                {/* Header */}
+                <Text style={styles.pengaturanTitle}>Pengaturan</Text>
+
+                {/* Profile Card */}
+                <View style={styles.profileCard}>
+                  <View style={styles.avatarCircle}>
+                    <Text style={styles.avatarEmoji}>👤</Text>
+                  </View>
+                  <Text style={styles.profileName}>Kim Jennie</Text>
+                  <Text style={styles.profileRole}>Pasien · BIPOLYZER</Text>
+                </View>
+
+                {/* Section: Perangkat */}
+                <View style={styles.settingSection}>
+                  <Text style={styles.settingSectionLabel}>PERANGKAT</Text>
+                  <TouchableOpacity style={styles.settingRow}>
+                    <View style={styles.settingRowLeft}>
+                      <Text style={styles.settingRowTitle}>Koneksi Gelang</Text>
+                      <Text style={styles.settingRowSub}>BIPOLYZER-001 · terhubung</Text>
+                    </View>
+                    <Text style={styles.settingRowIcon}>⑂</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Section: Notifikasi */}
+                <View style={styles.settingSection}>
+                  <Text style={styles.settingSectionLabel}>NOTIFIKASI</Text>
+
+                  <View style={styles.settingRow}>
+                    <View style={styles.settingRowLeft}>
+                      <Text style={styles.settingRowTitle}>Peringatan Fase</Text>
+                      <Text style={styles.settingRowSub}>Notifikasi deteksi anomali</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.toggle, notifFaseOn ? styles.toggleOn : styles.toggleOff]}
+                      onPress={() => setNotifFaseOn(!notifFaseOn)}
+                    >
+                      <View style={[styles.toggleThumb, notifFaseOn ? styles.toggleThumbOn : styles.toggleThumbOff]} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={[styles.settingRow, styles.settingRowNoBorder]}>
+                    <View style={styles.settingRowLeft}>
+                      <Text style={styles.settingRowTitle}>Pengingat Harian</Text>
+                      <Text style={styles.settingRowSub}>Cek kondisi pagi hari</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.toggle, notifHarianOn ? styles.toggleOn : styles.toggleOff]}
+                      onPress={() => setNotifHarianOn(!notifHarianOn)}
+                    >
+                      <View style={[styles.toggleThumb, notifHarianOn ? styles.toggleThumbOn : styles.toggleThumbOff]} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Section: Pengingat Kesehatan (Reminder) */}
+                <View style={styles.settingSection}>
+                  <Text style={styles.settingSectionLabel}>PENGINGAT KESEHATAN</Text>
+
+                  {reminders.map((reminder, index) => {
+                    const isLast = index === reminders.length - 1;
+                    return (
+                      <View key={reminder.id} style={[styles.reminderRow, isLast && styles.reminderRowNoBorder]}>
+                        <View style={styles.reminderLeft}>
+                          <View style={styles.reminderMeta}>
+                            <Text style={styles.reminderTitle}>{reminder.label}</Text>
+                            <Text style={styles.reminderTime}>{reminder.time} · {reminder.type === 'obat' ? 'Obat' : 'Olahraga'}</Text>
+                          </View>
+                        </View>
+
+                        <View style={styles.reminderRightActions}>
+                          <TouchableOpacity
+                            style={[styles.toggle, reminder.active ? styles.toggleOn : styles.toggleOff]}
+                            onPress={() => toggleReminder(reminder.id)}
+                          >
+                            <View style={[styles.toggleThumb, reminder.active ? styles.toggleThumbOn : styles.toggleThumbOff]} />
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={styles.deleteReminderTextBtn}
+                            onPress={() => handleDeleteReminder(reminder.id)}
+                          >
+                            <Text style={styles.deleteReminderText}>Hapus</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    );
+                  })}
+
+                  {/* Form Tambah Manual */}
+                  {showAddForm ? (
+                    <View style={styles.addReminderForm}>
+                      <Text style={styles.formLabel}>Nama Pengingat</Text>
+                      <TextInput
+                        style={styles.formInput}
+                        placeholder="Contoh: Minum Vitamin C"
+                        value={newLabel}
+                        onChangeText={setNewLabel}
+                        placeholderTextColor="#A89CB8"
+                      />
+
+                      <Text style={styles.formLabel}>Waktu (Jam)</Text>
+                      <TextInput
+                        style={styles.formInput}
+                        placeholder="Contoh: 08:00"
+                        value={newTime}
+                        onChangeText={setTime => {
+                          // Simple regex/auto format could go here, for demo simple string is fine
+                          setNewTime(setTime);
+                        }}
+                        placeholderTextColor="#A89CB8"
+                      />
+
+                      <Text style={styles.formLabel}>Kategori</Text>
+                      <View style={styles.formTypeRow}>
+                        <TouchableOpacity
+                          style={[styles.formTypeBtn, newType === 'obat' && styles.formTypeBtnActive]}
+                          onPress={() => setNewType('obat')}
+                        >
+                          <Text style={[styles.formTypeBtnText, newType === 'obat' && styles.formTypeBtnTextActive]}> Obat</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={[styles.formTypeBtn, newType === 'olahraga' && styles.formTypeBtnActive]}
+                          onPress={() => setNewType('olahraga')}
+                        >
+                          <Text style={[styles.formTypeBtnText, newType === 'olahraga' && styles.formTypeBtnTextActive]}> Olahraga</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      <View style={styles.formActions}>
+                        <TouchableOpacity
+                          style={styles.formCancelBtn}
+                          onPress={() => setShowAddForm(false)}
+                        >
+                          <Text style={styles.formCancelBtnText}>Batal</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.formSaveBtn}
+                          onPress={handleSaveReminder}
+                        >
+                          <Text style={styles.formSaveBtnText}>Simpan</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : (
+                    /* Add Reminder Button */
+                    <TouchableOpacity
+                      style={styles.addReminderBtn}
+                      onPress={() => setShowAddForm(true)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={styles.addReminderBtnText}>+ Tambah Pengingat</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {/* Emergency Contact */}
+                <View style={styles.settingSection}>
+                  <TouchableOpacity style={[styles.settingRow, styles.settingRowNoBorder]}>
+                    <Text style={styles.settingRowTitleBold}>Kontak darurat</Text>
+                    <Text style={styles.settingRowChevron}>›</Text>
+                  </TouchableOpacity>
+                </View>
+
+
+              </View>
+            )}
+
+            {/* ==================== TAB: RIWAYAT ==================== */}
+            {activeTab === 'Riwayat' && (
+              <View style={styles.riwayatContainer}>
+
+                {/* Header */}
+                <Text style={styles.riwayatTitle}>Riwayat Deteksi</Text>
+                <Text style={styles.riwayatSubtitle}>Semua Catatan Fase</Text>
+
+                {/* Entry: Fase Stabil (hari ini) */}
+                <View style={styles.riwayatCard}>
+                  <View style={[styles.riwayatIcon, styles.riwayatIconStabil]}>
+                    <Text style={styles.riwayatIconText}>✓</Text>
+                  </View>
+                  <View style={styles.riwayatCardText}>
+                    <Text style={styles.riwayatCardTitle}>Fase Stabil</Text>
+                    <Text style={styles.riwayatCardSub}>Hari ini · berlangsung 18 jam</Text>
+                  </View>
+                </View>
+
+                {/* Entry: Potensi Manik Ringan */}
+                <View style={styles.riwayatCard}>
+                  <View style={[styles.riwayatIcon, styles.riwayatIconManik]}>
+                    <Text style={styles.riwayatIconText}>⚠</Text>
+                  </View>
+                  <View style={styles.riwayatCardText}>
+                    <Text style={styles.riwayatCardTitle}>Potensi Manik Ringan</Text>
+                    <Text style={styles.riwayatCardSub}>Kam, 19 Jun · 6 jam</Text>
+                  </View>
+                </View>
+
+                {/* Entry: Fase Stabil (lalu) */}
+                <View style={styles.riwayatCard}>
+                  <View style={[styles.riwayatIcon, styles.riwayatIconStabil]}>
+                    <Text style={styles.riwayatIconText}>✓</Text>
+                  </View>
+                  <View style={styles.riwayatCardText}>
+                    <Text style={styles.riwayatCardTitle}>Fase Stabil</Text>
+                    <Text style={styles.riwayatCardSub}>Sel–Rab, 10–18 Jun · 8 hari</Text>
+                  </View>
+                </View>
+
+                {/* Entry: Potensi Depresi */}
+                <View style={styles.riwayatCard}>
+                  <View style={[styles.riwayatIcon, styles.riwayatIconDepresi]}>
+                    <Text style={styles.riwayatIconText}>☹</Text>
+                  </View>
+                  <View style={styles.riwayatCardText}>
+                    <Text style={styles.riwayatCardTitle}>Potensi Depresi</Text>
+                    <Text style={styles.riwayatCardSub}>Sen, 09 Jun · 1 hari</Text>
+                  </View>
+                </View>
+
+                {/* ── Artikel Edukasi Section ── */}
+                {selectedEduArticle === null ? (
+                  <View style={styles.eduSection}>
+                    <Text style={styles.eduSectionTitle}>Artikel Edukasi</Text>
+                    <Text style={styles.eduSectionSubtitle}>Pelajari lebih lanjut tentang fase bipolar</Text>
+
+                    {EDU_ARTICLES.map((article) => (
+                      <TouchableOpacity
+                        key={article.id}
+                        style={styles.eduCard}
+                        onPress={() => setSelectedEduArticle(article)}
+                        activeOpacity={0.88}
+                      >
+                        <Image
+                          source={article.thumbnail}
+                          style={styles.eduThumbnail}
+                          resizeMode="cover"
+                        />
+                        <View style={styles.eduCardBody}>
+                          <Text style={styles.eduCardTitle} numberOfLines={2}>{article.title}</Text>
+                          <Text style={styles.eduCardExcerpt} numberOfLines={3}>{article.excerpt}</Text>
+                          <View style={styles.eduCardSource}>
+                            <Text style={styles.eduSourceName}>{article.sourceName}</Text>
+                            <Text style={styles.eduSourceUrl} numberOfLines={1}>{article.sourceUrl}</Text>
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ) : (
+                  /* ── Detail View ── */
+                  <View style={styles.eduDetail}>
+                    <TouchableOpacity
+                      style={styles.eduDetailBack}
+                      onPress={() => setSelectedEduArticle(null)}
+                    >
+                      <Text style={styles.eduDetailBackText}>← Kembali</Text>
+                    </TouchableOpacity>
+
+                    <Image
+                      source={selectedEduArticle.thumbnail}
+                      style={styles.eduDetailThumbnail}
+                      resizeMode="cover"
+                    />
+
+                    <View style={styles.eduDetailBody}>
+                      <Text style={styles.eduDetailTitle}>{selectedEduArticle.title}</Text>
+
+                      <View style={styles.eduDetailSourceRow}>
+                        <Text style={styles.eduDetailSourceName}>{selectedEduArticle.sourceName}</Text>
+                      </View>
+
+                      <Text style={styles.eduDetailContent}>{selectedEduArticle.content}</Text>
+
+                      <View style={styles.eduDetailUrlRow}>
+                        <Text style={styles.eduDetailUrlLabel}>Sumber: </Text>
+                        <Text style={styles.eduDetailUrl} numberOfLines={2}>{selectedEduArticle.sourceUrl}</Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
+
+              </View>
+            )}
+
+          </ScrollView>
+
+          {/* Bottom Navigation Bar */}
+          <View style={styles.navBar}>
+            <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('Beranda')}>
+              <Image
+                source={require('./assets/ICON_HOMEPAGE/home_icon.png')}
+                style={[styles.navIconImg, activeTab === 'Beranda' ? styles.navIconActive : styles.navIconInactive]}
+              />
+              <Text style={[styles.navText, activeTab === 'Beranda' ? styles.navTextActive : styles.navTextInactive]}>Beranda</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('Tren')}>
+              <Image
+                source={require('./assets/ICON_HOMEPAGE/tren_icon.png')}
+                style={[styles.navIconImg, activeTab === 'Tren' ? styles.navIconActive : styles.navIconInactive]}
+              />
+              <Text style={[styles.navText, activeTab === 'Tren' ? styles.navTextActive : styles.navTextInactive]}>Tren</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('Pengaturan')}>
+              <Image
+                source={require('./assets/ICON_HOMEPAGE/settings_icon.png')}
+                style={[styles.navIconImg, activeTab === 'Pengaturan' ? styles.navIconActive : styles.navIconInactive]}
+              />
+              <Text style={[styles.navText, activeTab === 'Pengaturan' ? styles.navTextActive : styles.navTextInactive]}>Pengaturan</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('Riwayat')}>
+              <Image
+                source={require('./assets/ICON_HOMEPAGE/riwayat_icon.png')}
+                style={[styles.navIconImg, activeTab === 'Riwayat' ? styles.navIconActive : styles.navIconInactive]}
+              />
+              <Text style={[styles.navText, activeTab === 'Riwayat' ? styles.navTextActive : styles.navTextInactive]}>Riwayat</Text>
+            </TouchableOpacity>
           </View>
-        )}
+        </SafeAreaView>
+      )}
 
-      </ScrollView>
+      {/* ── Lock Screen Overlay (Fades out when pinVerified) ── */}
+      {!isUnlocked && (
+        <Animated.View style={[styles.lockContainerAbsolute, { opacity: lockOpacity }]}>
+          <SafeAreaView style={{ flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' }}>
+            <StatusBar style="dark" />
 
-      {/* Bottom Navigation Bar */}
-      <View style={styles.navBar}>
-        <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('Beranda')}>
-          <Image
-            source={require('./assets/ICON_HOMEPAGE/home_icon.png')}
-            style={[styles.navIconImg, activeTab === 'Beranda' ? styles.navIconActive : styles.navIconInactive]}
-          />
-          <Text style={[styles.navText, activeTab === 'Beranda' ? styles.navTextActive : styles.navTextInactive]}>Beranda</Text>
-        </TouchableOpacity>
+            {/* Logo kecil di atas */}
+            <Image
+              source={require('./assets/icon_app_trans.png')}
+              style={styles.lockLogo}
+              resizeMode="contain"
+            />
 
-        <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('Tren')}>
-          <Image
-            source={require('./assets/ICON_HOMEPAGE/tren_icon.png')}
-            style={[styles.navIconImg, activeTab === 'Tren' ? styles.navIconActive : styles.navIconInactive]}
-          />
-          <Text style={[styles.navText, activeTab === 'Tren' ? styles.navTextActive : styles.navTextInactive]}>Tren</Text>
-        </TouchableOpacity>
+            {/* Judul */}
+            <Text style={styles.lockTitle}>Masukkan PIN</Text>
+            <Text style={styles.lockSubtitle}>Masukkan 4 digit PIN untuk melanjutkan</Text>
 
-        <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('Pengaturan')}>
-          <Image
-            source={require('./assets/ICON_HOMEPAGE/settings_icon.png')}
-            style={[styles.navIconImg, activeTab === 'Pengaturan' ? styles.navIconActive : styles.navIconInactive]}
-          />
-          <Text style={[styles.navText, activeTab === 'Pengaturan' ? styles.navTextActive : styles.navTextInactive]}>Pengaturan</Text>
-        </TouchableOpacity>
+            {/* 4 Dot Indicator */}
+            <View style={styles.lockDotsRow}>
+              {[0, 1, 2, 3].map((i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.lockDot,
+                    pinInput.length > i ? styles.lockDotFilled : styles.lockDotEmpty,
+                    pinError ? styles.lockDotError : null,
+                  ]}
+                />
+              ))}
+            </View>
 
-        <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('Riwayat')}>
-          <Image
-            source={require('./assets/ICON_HOMEPAGE/riwayat_icon.png')}
-            style={[styles.navIconImg, activeTab === 'Riwayat' ? styles.navIconActive : styles.navIconInactive]}
-          />
-          <Text style={[styles.navText, activeTab === 'Riwayat' ? styles.navTextActive : styles.navTextInactive]}>Riwayat</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+            {/* Error message */}
+            {pinError && (
+              <Text style={styles.lockErrorText}>PIN salah, coba lagi</Text>
+            )}
+
+            {/* Keypad */}
+            <View style={styles.lockKeypad}>
+              {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'].map((key, idx) => {
+                if (key === '') {
+                  return <View key={idx} style={styles.lockKeyEmpty} />;
+                }
+                if (key === 'del') {
+                  return (
+                    <TouchableOpacity
+                      key={idx}
+                      style={styles.lockKey}
+                      onPress={handlePinDelete}
+                      activeOpacity={0.6}
+                    >
+                      <Image
+                        source={require('./assets/lockscreen/delete_icon.png')}
+                        style={styles.lockKeyDelIcon}
+                        resizeMode="contain"
+                      />
+                    </TouchableOpacity>
+                  );
+                }
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    style={styles.lockKey}
+                    onPress={() => handlePinPress(key)}
+                    activeOpacity={0.6}
+                  >
+                    <Text style={styles.lockKeyText}>{key}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Biometrik placeholder */}
+            <TouchableOpacity style={styles.lockBiometric} activeOpacity={0.7}>
+              <Text style={styles.lockBiometricText}>Gunakan Biometrik</Text>
+            </TouchableOpacity>
+          </SafeAreaView>
+        </Animated.View>
+      )}
 
       {/* ── Splash Overlay (absolute, fades out to reveal main app) ── */}
       {showSplash && (
@@ -1153,6 +1459,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 18,
     paddingHorizontal: 16,
+    paddingBottom: 16,
     marginBottom: 16,
   },
   settingSectionLabel: {
@@ -1463,6 +1770,288 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#7B5EA7',
     flex: 1,
+  },
+
+  // ==================== STYLES: LOCK SCREEN ====================
+  lockContainerAbsolute: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#FFFFFF',
+    zIndex: 100,
+  },
+  lockContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 40,
+  },
+  lockLogo: {
+    width: 90,
+    height: 90,
+    marginBottom: 24,
+  },
+  lockTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#2E1E43',
+    marginBottom: 4,
+  },
+  lockSubtitle: {
+    fontSize: 13,
+    color: '#8A7B9C',
+    marginBottom: 28,
+  },
+  lockDotsRow: {
+    flexDirection: 'row',
+    gap: 18,
+    marginBottom: 12,
+  },
+  lockDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+  },
+  lockDotEmpty: {
+    backgroundColor: '#E8E0F0',
+    borderWidth: 1.5,
+    borderColor: '#D0C4DE',
+  },
+  lockDotFilled: {
+    backgroundColor: '#7B5EA7',
+    borderWidth: 0,
+  },
+  lockDotError: {
+    backgroundColor: '#E06060',
+    borderWidth: 0,
+  },
+  lockErrorText: {
+    fontSize: 13,
+    color: '#E06060',
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  lockKeypad: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    width: 260,
+    marginTop: 16,
+  },
+  lockKey: {
+    width: 72,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    margin: 6,
+    borderRadius: 16,
+    backgroundColor: '#F3EEF9',
+  },
+  lockKeyEmpty: {
+    width: 72,
+    height: 60,
+    margin: 6,
+  },
+  lockKeyText: {
+    fontSize: 26,
+    fontWeight: '600',
+    color: '#2E1E43',
+  },
+  lockKeyTextDel: {
+    fontSize: 24,
+    color: '#7B5EA7',
+  },
+  lockKeyDelIcon: {
+    width: 26,
+    height: 26,
+    // tintColor: '#7B5EA7',
+  },
+  lockBiometric: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 24,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    backgroundColor: '#F3EEF9',
+  },
+  lockBiometricIcon: {
+    fontSize: 18,
+  },
+  lockBiometricText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#7B5EA7',
+  },
+
+  // ==================== STYLES: REMINDERS ====================
+  reminderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.2)',
+  },
+  reminderRowNoBorder: {
+    borderBottomWidth: 0,
+    paddingBottom: 6,
+  },
+  reminderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  reminderIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  remIconObatBg: {
+    backgroundColor: '#FFEBF0', // merah muda pastel
+  },
+  remIconOlahBg: {
+    backgroundColor: '#EBF3FF', // biru muda pastel
+  },
+  reminderEmoji: {
+    fontSize: 18,
+  },
+  reminderMeta: {
+    justifyContent: 'center',
+  },
+  reminderTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  reminderTime: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '500',
+  },
+  reminderRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  deleteReminderTextBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  deleteReminderText: {
+    fontSize: 12,
+    color: '#cd0014ff', // pink/merah terang pastel kontras di background ungu
+    fontWeight: '600',
+  },
+  addReminderBtn: {
+    marginTop: 16,
+    paddingVertical: 10,
+    borderWidth: 1.5,
+    borderColor: '#7B5EA7',
+    borderStyle: 'dashed',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addReminderBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#7B5EA7',
+  },
+
+  // ── Form Tambah Pengingat ──
+  addReminderForm: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: '#F7F4FB',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E8DFF5',
+  },
+  formLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#5C447C',
+    marginBottom: 6,
+    marginTop: 10,
+  },
+  formInput: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#DCD3EA',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: '#2E1E43',
+  },
+  formTypeRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  formTypeBtn: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#DCD3EA',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  formTypeBtnActive: {
+    backgroundColor: '#E2D9F3',
+    borderColor: '#7B5EA7',
+  },
+  formTypeBtnText: {
+    fontSize: 13,
+    color: '#8A7B9C',
+    fontWeight: '600',
+  },
+  formTypeBtnTextActive: {
+    color: '#4C307A',
+    fontWeight: '700',
+  },
+  formActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 18,
+  },
+  formCancelBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#DCD3EA',
+  },
+  formCancelBtnText: {
+    fontSize: 13,
+    color: '#8A7B9C',
+    fontWeight: '600',
+  },
+  formSaveBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    backgroundColor: '#7B5EA7',
+  },
+  formSaveBtnText: {
+    fontSize: 13,
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
 });
 
