@@ -26,6 +26,20 @@
       "eas": {
         "projectId": "dc6a92ec-7ac0-4383-b4a6-cb6bbf6bef71"
       }
-    }
+    },
+    "plugins": [
+      "expo-sqlite",
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "modes": [
+            "peripheral",
+            "central"
+          ],
+          "bluetoothNeverForLocationPermissionDescription": "Aplikasi Bypolizer membutuhkan Bluetooth untuk terhubung ke sensor sirkadian."
+        }
+      ]
+    ]
   }
 }

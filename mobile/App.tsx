@@ -15,6 +15,13 @@ import {
 } from 'react-native';
 import Svg, { Path, Circle, Line, G, Rect, Text as SvgText } from 'react-native-svg';
 
+// Custom Services & Types
+import { bleManager, ConnectionState } from './src/services/bleManager';
+import { syncService } from './src/services/syncService';
+import { PipelineResult } from './src/circadian/pipeline';
+import { getRecentFeatureVectors, DbFeatureVector } from './src/database/queries';
+import { Device } from 'react-native-ble-plx';
+
 const { width } = Dimensions.get('window');
 
 // --- PROGRESS RING COMPONENT FOR BERANDA ---
@@ -289,6 +296,76 @@ export default function App() {
   const [notifHarianOn, setNotifHarianOn] = useState<boolean>(false);
   const [selectedEduArticle, setSelectedEduArticle] = useState<EduArticle | null>(null);
 
+  // ── BLE & Circadian States ──
+  const [bleConnectionState, setBleConnectionState] = useState<ConnectionState>('disconnected');
+  const [scannedDevices, setScannedDevices] = useState<Device[]>([]);
+  const [showBleModal, setShowBleModal] = useState<boolean>(false);
+  const [latestResult, setLatestResult] = useState<PipelineResult | null>(null);
+  const [historicalVectors, setHistoricalVectors] = useState<DbFeatureVector[]>([]);
+
+  // Load historical data dari SQLite
+  const loadHistory = async () => {
+    try {
+      const data = await getRecentFeatureVectors(30);
+      setHistoricalVectors(data);
+    } catch (err) {
+      console.warn('Gagal memuat riwayat:', err);
+    }
+  };
+
+  useEffect(() => {
+    // Inisialisasi sync service (database & BLE subscription)
+    syncService.initialize();
+
+    // Berlangganan status koneksi BLE
+    const unsubState = bleManager.subscribeStateChange((state) => {
+      setBleConnectionState(state);
+      if (state === 'disconnected') {
+        setScannedDevices([]);
+      }
+    });
+
+    // Berlangganan hasil pipeline sirkadian
+    const unsubPipeline = syncService.subscribePipelineResult((result) => {
+      setLatestResult(result);
+      loadHistory(); // Reload history
+    });
+
+    // Load initial history
+    loadHistory();
+
+    return () => {
+      unsubState();
+      unsubPipeline();
+    };
+  }, []);
+
+  // Reload history saat berpindah ke tab Riwayat
+  useEffect(() => {
+    if (activeTab === 'Riwayat') {
+      loadHistory();
+    }
+  }, [activeTab]);
+
+  const startScanning = async () => {
+    setScannedDevices([]);
+    await bleManager.startScan((device) => {
+      setScannedDevices((prev) => {
+        if (prev.some((d) => d.id === device.id)) return prev;
+        return [...prev, device];
+      });
+    });
+  };
+
+  const handleConnect = async (device: Device) => {
+    await bleManager.connectToDevice(device);
+    setShowBleModal(false);
+  };
+
+  const handleDisconnect = async () => {
+    await bleManager.disconnect();
+  };
+
   // ── Web Specific Title & Favicon Setup ──
   useEffect(() => {
     if (Platform.OS === 'web') {
@@ -460,14 +537,31 @@ export default function App() {
                 {/* Content Area */}
                 <View style={styles.content}>
                   {/* FASE SAAT INI Card */}
-                  <View style={styles.phaseCard}>
+                  <View style={[
+                    styles.phaseCard,
+                    latestResult && !latestResult.circadian_valid && { backgroundColor: '#FF8A8A' }
+                  ]}>
                     <View style={styles.phaseCardLeft}>
                       <Text style={styles.phaseCardLabel}>FASE SAAT INI</Text>
-                      <Text style={styles.phaseCardValue}>Stabil</Text>
+                      <Text style={[
+                        styles.phaseCardValue,
+                        latestResult && !latestResult.circadian_valid && { color: '#8A0000' }
+                      ]}>
+                        {latestResult 
+                          ? (latestResult.circadian_valid ? 'Stabil' : 'Potensi Relaps') 
+                          : 'Stabil'}
+                      </Text>
                     </View>
                     <View style={styles.phaseCardRight}>
-                      <Text style={styles.phaseCardDurationLabel}>Berlangsung</Text>
-                      <Text style={styles.phaseCardDurationValue}>18 jam</Text>
+                      <Text style={styles.phaseCardDurationLabel}>
+                        {latestResult ? 'Window' : 'Berlangsung'}
+                      </Text>
+                      <Text style={[
+                        styles.phaseCardDurationValue,
+                        latestResult && !latestResult.circadian_valid && { color: '#8A0000' }
+                      ]}>
+                        {latestResult ? latestResult.window_name : '18 jam'}
+                      </Text>
                     </View>
                   </View>
 
@@ -475,41 +569,89 @@ export default function App() {
                   <View style={styles.grid}>
                     <View style={styles.gridCard}>
                       <Image source={require('./assets/ICON_HOMEPAGE/heart_icon.png')} style={styles.gridIconImg} />
-                      <Text style={styles.gridCardLabel}>HRV</Text>
-                      <Text style={styles.gridCardValue}>54 ms</Text>
+                      <Text style={styles.gridCardLabel}>HRV (RMSSD)</Text>
+                      <Text style={styles.gridCardValue}>
+                        {latestResult ? `${latestResult.hrv_rmssd.toFixed(0)} ms` : '54 ms'}
+                      </Text>
                     </View>
 
                     <View style={styles.gridCard}>
                       <Image source={require('./assets/ICON_HOMEPAGE/mic_icon.png')} style={styles.gridIconImg} />
-                      <Text style={styles.gridCardLabel}>Biomarker vokal</Text>
-                      <Text style={styles.gridCardValue}>0.74</Text>
+                      <Text style={styles.gridCardLabel}>Biomarker Vokal</Text>
+                      <Text style={styles.gridCardValue}>
+                        {latestResult ? `${latestResult.vocal_f0.toFixed(0)}` : '0.74'}
+                      </Text>
                     </View>
 
                     <View style={styles.gridCard}>
                       <Image source={require('./assets/ICON_HOMEPAGE/moon_icon.png')} style={styles.gridIconImg} />
-                      <Text style={styles.gridCardLabel}>TIDUR</Text>
-                      <Text style={styles.gridCardValue}>7.1 jam</Text>
+                      <Text style={styles.gridCardLabel}>Dwell Time</Text>
+                      <Text style={styles.gridCardValue}>
+                        {latestResult ? `${latestResult.imu_dwell_min.toFixed(1)} m` : '7.1 jam'}
+                      </Text>
                     </View>
 
                     <View style={styles.gridCard}>
                       <Image source={require('./assets/ICON_HOMEPAGE/walking_icon.png')} style={styles.gridIconImg} />
-                      <Text style={styles.gridCardLabel}>Langkah hari ini</Text>
-                      <Text style={styles.gridCardValue}>4.2k</Text>
+                      <Text style={styles.gridCardLabel}>Status Alat</Text>
+                      <Text style={styles.gridCardValue}>
+                        {bleConnectionState === 'connected' ? 'Terhubung' : 'Terputus'}
+                      </Text>
                     </View>
                   </View>
 
                   {/* Warning / Alert Panel */}
-                  <View style={styles.alertCard}>
-                    <View style={styles.alertIconContainer}>
-                      <Image source={require('./assets/ICON_HOMEPAGE/warning_icon.png')} style={styles.alertIconImg} />
+                  {latestResult ? (
+                    !latestResult.circadian_valid ? (
+                      <View style={[styles.alertCard, { backgroundColor: '#FFF0F0', borderColor: '#FFC8C8', borderWidth: 1 }]}>
+                        <View style={styles.alertIconContainer}>
+                          <Image source={require('./assets/ICON_HOMEPAGE/warning_icon.png')} style={styles.alertIconImg} />
+                        </View>
+                        <View style={styles.alertTextContainer}>
+                          <Text style={[styles.alertTitle, { color: '#D32F2F' }]}>Anomali Terdeteksi</Text>
+                          <Text style={[styles.alertDesc, { color: '#C62828' }]}>
+                            Fluktuasi abnormal di window {latestResult.window_name} teridentifikasi sebagai anomali valid.
+                          </Text>
+                        </View>
+                      </View>
+                    ) : latestResult.suppressed_reason ? (
+                      <View style={[styles.alertCard, { backgroundColor: '#F0F9FF', borderColor: '#C8E5FF', borderWidth: 1 }]}>
+                        <View style={styles.alertIconContainer}>
+                          <Image source={require('./assets/ICON_HOMEPAGE/warning_icon.png')} style={[styles.alertIconImg, { tintColor: '#0288D1' }]} />
+                        </View>
+                        <View style={styles.alertTextContainer}>
+                          <Text style={[styles.alertTitle, { color: '#0288D1' }]}>Gating Aktif ({latestResult.suppressed_reason})</Text>
+                          <Text style={[styles.alertDesc, { color: '#01579B' }]}>
+                            Anomali disaring oleh aturan sirkadian biologis. Kondisi dinilai stabil.
+                          </Text>
+                        </View>
+                      </View>
+                    ) : (
+                      <View style={[styles.alertCard, { backgroundColor: '#F0FFF4', borderColor: '#C8FFD4', borderWidth: 1 }]}>
+                        <View style={styles.alertIconContainer}>
+                          <Text style={{ fontSize: 20 }}>✓</Text>
+                        </View>
+                        <View style={styles.alertTextContainer}>
+                          <Text style={[styles.alertTitle, { color: '#388E3C' }]}>Semua Sistem Normal</Text>
+                          <Text style={[styles.alertDesc, { color: '#1B5E20' }]}>
+                            Parameter HRV, Vokal, dan Motorik Anda stabil di window {latestResult.window_name}.
+                          </Text>
+                        </View>
+                      </View>
+                    )
+                  ) : (
+                    <View style={styles.alertCard}>
+                      <View style={styles.alertIconContainer}>
+                        <Image source={require('./assets/ICON_HOMEPAGE/warning_icon.png')} style={styles.alertIconImg} />
+                      </View>
+                      <View style={styles.alertTextContainer}>
+                        <Text style={styles.alertTitle}>Gelang Belum Terhubung</Text>
+                        <Text style={styles.alertDesc}>
+                          Hubungkan gelang Bipolyzer Anda di tab Pengaturan untuk memulai pemantauan sirkadian.
+                        </Text>
+                      </View>
                     </View>
-                    <View style={styles.alertTextContainer}>
-                      <Text style={styles.alertTitle}>Pitch suara meningkat</Text>
-                      <Text style={styles.alertDesc}>
-                        Naik 12% dari kemarin pagi. Pantau aktivitas hari ini.
-                      </Text>
-                    </View>
-                  </View>
+                  )}
 
                   {/* Progress Mood Tracker */}
                   <View style={styles.progressSection}>
@@ -635,14 +777,30 @@ export default function App() {
                 </View>
 
                 {/* Section: Perangkat */}
+                {/* Section: Perangkat */}
                 <View style={styles.settingSection}>
                   <Text style={styles.settingSectionLabel}>PERANGKAT</Text>
-                  <TouchableOpacity style={styles.settingRow}>
+                  <TouchableOpacity 
+                    style={styles.settingRow}
+                    onPress={() => {
+                      setShowBleModal(true);
+                      if (bleConnectionState === 'disconnected') {
+                        startScanning();
+                      }
+                    }}
+                  >
                     <View style={styles.settingRowLeft}>
                       <Text style={styles.settingRowTitle}>Koneksi Gelang</Text>
-                      <Text style={styles.settingRowSub}>BIPOLYZER-001 · terhubung</Text>
+                      <Text style={styles.settingRowSub}>
+                        {bleConnectionState === 'connected' ? 'Circadian · Terhubung' :
+                         bleConnectionState === 'connecting' ? 'Menghubungkan...' :
+                         bleConnectionState === 'scanning' ? 'Mencari gelang...' :
+                         'Belum terhubung · Tap untuk mencari'}
+                      </Text>
                     </View>
-                    <Text style={styles.settingRowIcon}>⑂</Text>
+                    <Text style={styles.settingRowIcon}>
+                      {bleConnectionState === 'connected' ? '✓' : '⑂'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
 
@@ -800,49 +958,78 @@ export default function App() {
                 <Text style={styles.riwayatTitle}>Riwayat Deteksi</Text>
                 <Text style={styles.riwayatSubtitle}>Semua Catatan Fase</Text>
 
-                {/* Entry: Fase Stabil (hari ini) */}
-                <View style={styles.riwayatCard}>
-                  <View style={[styles.riwayatIcon, styles.riwayatIconStabil]}>
-                    <Text style={styles.riwayatIconText}>✓</Text>
-                  </View>
-                  <View style={styles.riwayatCardText}>
-                    <Text style={styles.riwayatCardTitle}>Fase Stabil</Text>
-                    <Text style={styles.riwayatCardSub}>Hari ini · berlangsung 18 jam</Text>
-                  </View>
-                </View>
+                {historicalVectors.length > 0 ? (
+                  historicalVectors.map((fv) => (
+                    <View key={fv.epoch_id} style={styles.riwayatCard}>
+                      <View style={[
+                        styles.riwayatIcon, 
+                        fv.circadian_valid === 1 ? styles.riwayatIconStabil : styles.riwayatIconManik
+                      ]}>
+                        <Text style={styles.riwayatIconText}>
+                          {fv.circadian_valid === 1 ? '✓' : '⚠'}
+                        </Text>
+                      </View>
+                      <View style={styles.riwayatCardText}>
+                        <Text style={styles.riwayatCardTitle}>
+                          {fv.circadian_valid === 1 
+                            ? `Fase Stabil (${fv.window_name})` 
+                            : fv.suppressed_reason 
+                              ? `Fase Stabil (Gated: ${fv.suppressed_reason})` 
+                              : `Potensi Relaps/Anomali (${fv.window_name})`}
+                        </Text>
+                        <Text style={styles.riwayatCardSub}>
+                          {new Date(fv.timestamp).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit' })} · HRV: {fv.hrv_rmssd?.toFixed(0)} ms · Vocal: {fv.vocal_f0?.toFixed(0)}
+                        </Text>
+                      </View>
+                    </View>
+                  ))
+                ) : (
+                  <>
+                    {/* Entry: Fase Stabil (hari ini) */}
+                    <View style={styles.riwayatCard}>
+                      <View style={[styles.riwayatIcon, styles.riwayatIconStabil]}>
+                        <Text style={styles.riwayatIconText}>✓</Text>
+                      </View>
+                      <View style={styles.riwayatCardText}>
+                        <Text style={styles.riwayatCardTitle}>Fase Stabil</Text>
+                        <Text style={styles.riwayatCardSub}>Hari ini · berlangsung 18 jam</Text>
+                      </View>
+                    </View>
 
-                {/* Entry: Potensi Manik Ringan */}
-                <View style={styles.riwayatCard}>
-                  <View style={[styles.riwayatIcon, styles.riwayatIconManik]}>
-                    <Text style={styles.riwayatIconText}>⚠</Text>
-                  </View>
-                  <View style={styles.riwayatCardText}>
-                    <Text style={styles.riwayatCardTitle}>Potensi Manik Ringan</Text>
-                    <Text style={styles.riwayatCardSub}>Kam, 19 Jun · 6 jam</Text>
-                  </View>
-                </View>
+                    {/* Entry: Potensi Manik Ringan */}
+                    <View style={styles.riwayatCard}>
+                      <View style={[styles.riwayatIcon, styles.riwayatIconManik]}>
+                        <Text style={styles.riwayatIconText}>⚠</Text>
+                      </View>
+                      <View style={styles.riwayatCardText}>
+                        <Text style={styles.riwayatCardTitle}>Potensi Manik Ringan</Text>
+                        <Text style={styles.riwayatCardSub}>Kam, 19 Jun · 6 jam</Text>
+                      </View>
+                    </View>
 
-                {/* Entry: Fase Stabil (lalu) */}
-                <View style={styles.riwayatCard}>
-                  <View style={[styles.riwayatIcon, styles.riwayatIconStabil]}>
-                    <Text style={styles.riwayatIconText}>✓</Text>
-                  </View>
-                  <View style={styles.riwayatCardText}>
-                    <Text style={styles.riwayatCardTitle}>Fase Stabil</Text>
-                    <Text style={styles.riwayatCardSub}>Sel–Rab, 10–18 Jun · 8 hari</Text>
-                  </View>
-                </View>
+                    {/* Entry: Fase Stabil (lalu) */}
+                    <View style={styles.riwayatCard}>
+                      <View style={[styles.riwayatIcon, styles.riwayatIconStabil]}>
+                        <Text style={styles.riwayatIconText}>✓</Text>
+                      </View>
+                      <View style={styles.riwayatCardText}>
+                        <Text style={styles.riwayatCardTitle}>Fase Stabil</Text>
+                        <Text style={styles.riwayatCardSub}>Sel–Rab, 10–18 Jun · 8 hari</Text>
+                      </View>
+                    </View>
 
-                {/* Entry: Potensi Depresi */}
-                <View style={styles.riwayatCard}>
-                  <View style={[styles.riwayatIcon, styles.riwayatIconDepresi]}>
-                    <Text style={styles.riwayatIconText}>☹</Text>
-                  </View>
-                  <View style={styles.riwayatCardText}>
-                    <Text style={styles.riwayatCardTitle}>Potensi Depresi</Text>
-                    <Text style={styles.riwayatCardSub}>Sen, 09 Jun · 1 hari</Text>
-                  </View>
-                </View>
+                    {/* Entry: Potensi Depresi */}
+                    <View style={styles.riwayatCard}>
+                      <View style={[styles.riwayatIcon, styles.riwayatIconDepresi]}>
+                        <Text style={styles.riwayatIconText}>☹</Text>
+                      </View>
+                      <View style={styles.riwayatCardText}>
+                        <Text style={styles.riwayatCardTitle}>Potensi Depresi</Text>
+                        <Text style={styles.riwayatCardSub}>Sen, 09 Jun · 1 hari</Text>
+                      </View>
+                    </View>
+                  </>
+                )}
 
                 {/* ── Artikel Edukasi Section ── */}
                 {selectedEduArticle === null ? (
@@ -946,6 +1133,75 @@ export default function App() {
             </TouchableOpacity>
           </View>
         </SafeAreaView>
+      )}
+
+      {/* ── BLE Scanner Modal Overlay ── */}
+      {showBleModal && (
+        <View style={styles.bleModalOverlay}>
+          <View style={styles.bleModalContent}>
+            <Text style={styles.bleModalTitle}>Koneksi Gelang Sirkadian</Text>
+            
+            {bleConnectionState === 'connected' ? (
+              <View style={styles.bleConnectedContainer}>
+                <Text style={styles.bleConnectedText}>Gelang saat ini terhubung!</Text>
+                <TouchableOpacity 
+                  style={styles.bleDisconnectBtn}
+                  onPress={handleDisconnect}
+                >
+                  <Text style={styles.bleDisconnectBtnText}>Putuskan Koneksi</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <>
+                <Text style={styles.bleModalStatus}>
+                  Status: {bleConnectionState === 'scanning' ? 'Mencari perangkat...' :
+                           bleConnectionState === 'connecting' ? 'Menghubungkan...' : 'Siap memindai'}
+                </Text>
+                
+                <ScrollView style={styles.bleDeviceList} nestedScrollEnabled={true}>
+                  {scannedDevices.length > 0 ? (
+                    scannedDevices.map((device) => (
+                      <TouchableOpacity 
+                        key={device.id} 
+                        style={styles.bleDeviceItem}
+                        onPress={() => handleConnect(device)}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.bleDeviceName}>{device.name || 'Unknown Device'}</Text>
+                          <Text style={styles.bleDeviceAddress}>{device.id}</Text>
+                        </View>
+                        <Text style={styles.bleDeviceConnectText}>Hubungkan ›</Text>
+                      </TouchableOpacity>
+                    ))
+                  ) : (
+                    <Text style={styles.bleEmptyText}>
+                      {bleConnectionState === 'scanning' ? 'Mencari gelang Bipolyzer...' : 'Belum ada perangkat ditemukan.'}
+                    </Text>
+                  )}
+                </ScrollView>
+
+                {bleConnectionState !== 'scanning' && bleConnectionState !== 'connecting' && (
+                  <TouchableOpacity 
+                    style={styles.bleScanBtn}
+                    onPress={startScanning}
+                  >
+                    <Text style={styles.bleScanBtnText}>Mulai Scan</Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+
+            <TouchableOpacity 
+              style={styles.bleCloseBtn}
+              onPress={() => {
+                setShowBleModal(false);
+                bleManager.stopScan();
+              }}
+            >
+              <Text style={styles.bleCloseBtnText}>Tutup</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       )}
 
       {/* ── Lock Screen Overlay (Fades out when pinVerified) ── */}
@@ -2052,6 +2308,130 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#FFFFFF',
     fontWeight: '700',
+  },
+
+  // ── BLE Modal Styles ──
+  bleModalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 9999,
+  },
+  bleModalContent: {
+    width: width - 40,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    maxHeight: '80%',
+  },
+  bleModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2E1E43',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  bleModalStatus: {
+    fontSize: 14,
+    color: '#7B5EA7',
+    marginBottom: 16,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  bleDeviceList: {
+    maxHeight: 250,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E8DFF5',
+    borderRadius: 8,
+    backgroundColor: '#F7F4FB',
+  },
+  bleDeviceItem: {
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8DFF5',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  bleDeviceName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#2E1E43',
+  },
+  bleDeviceAddress: {
+    fontSize: 12,
+    color: '#8A7B9C',
+    marginTop: 2,
+  },
+  bleDeviceConnectText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#7B5EA7',
+  },
+  bleEmptyText: {
+    fontSize: 14,
+    color: '#8A7B9C',
+    textAlign: 'center',
+    padding: 20,
+    fontStyle: 'italic',
+  },
+  bleScanBtn: {
+    backgroundColor: '#7B5EA7',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  bleScanBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  bleCloseBtn: {
+    backgroundColor: '#F7F4FB',
+    borderWidth: 1,
+    borderColor: '#E8DFF5',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  bleCloseBtnText: {
+    color: '#7B5EA7',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  bleConnectedContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  bleConnectedText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2E1E43',
+    marginBottom: 20,
+  },
+  bleDisconnectBtn: {
+    backgroundColor: '#FF5E5E',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  bleDisconnectBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+    fontSize: 15,
   },
 });
 
