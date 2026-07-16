@@ -10,6 +10,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.bipolyzer.circadian",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -20,6 +21,11 @@
     },
     "web": {
       "favicon": "./assets/icon_app.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "dc6a92ec-7ac0-4383-b4a6-cb6bbf6bef71"
+      }
     }
   }
 }
