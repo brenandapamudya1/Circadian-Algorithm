@@ -89,10 +89,14 @@ function base64ToUtf8(base64: string): string {
 // ── BLE MANAGER CLASS ────────────────────────────────────────────────────────
 
 class BipolyzerBleManager {
-  private manager: BleManager;
+  private manager: BleManager | null = null;
   private connectedDevice: Device | null = null;
   private connectionState: ConnectionState = 'disconnected';
   private characteristicSubscription: Subscription | null = null;
+
+  // Web Specific Simulation Timers
+  private mockTimer: any = null;
+  private mockStreamInterval: any = null;
 
   // Callbacks
   private onStateChangeCallbacks: Set<ConnectionStateCallback> = new Set();
@@ -100,13 +104,22 @@ class BipolyzerBleManager {
   private onPipelineDataCallbacks: Set<PipelineDataCallback> = new Set();
 
   constructor() {
-    this.manager = new BleManager();
+    // Hindari menginisialisasi BleManager di Web karena native module tidak tersedia dan memicu crash
+    if (Platform.OS !== 'web') {
+      this.manager = new BleManager();
+    } else {
+      console.log('[BLE] Berjalan di Web. Simulator terintegrasi diaktifkan.');
+    }
   }
 
   /**
    * Request permission yang dibutuhkan untuk scanning dan connection di Android.
    */
   public async requestPermissions(): Promise<boolean> {
+    if (Platform.OS === 'web') {
+      return true;
+    }
+
     if (Platform.OS === 'ios') {
       return true;
     }
@@ -115,7 +128,6 @@ class BipolyzerBleManager {
       const apiLevel = parseInt(Platform.Version.toString(), 10);
       
       if (apiLevel < 31) {
-        // Android 10 atau lebih lama membutuhkan ACCESS_FINE_LOCATION
         const granted = await PermissionsAndroid.request(
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
           {
@@ -128,7 +140,6 @@ class BipolyzerBleManager {
         );
         return granted === PermissionsAndroid.RESULTS.GRANTED;
       } else {
-        // Android 11+ membutuhkan BLUETOOTH_SCAN dan BLUETOOTH_CONNECT
         const result = await PermissionsAndroid.requestMultiple([
           PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
           PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
@@ -208,35 +219,53 @@ class BipolyzerBleManager {
     this.setConnectionState('scanning');
     console.log('[BLE] Memulai scan...');
 
-    this.manager.startDeviceScan(
-      null, // Scan semua untuk memastikan terbaca, lalu kita filter di callback
-      { allowDuplicates: false },
-      (error, device) => {
-        if (error) {
-          console.error('[BLE] Error saat scan:', error);
-          this.setConnectionState('disconnected');
-          this.manager.stopDeviceScan();
-          return;
+    // Simulasi web
+    if (Platform.OS === 'web') {
+      this.mockTimer = setTimeout(() => {
+        if (this.connectionState === 'scanning') {
+          const mockDevice = {
+            id: 'SIMULATOR-WEB-001',
+            name: 'Circadian (Simulated)',
+            localName: 'Circadian (Simulated)',
+          } as any;
+          console.log('[BLE Mock Web] Perangkat simulasi ditemukan.');
+          onDeviceFound?.(mockDevice);
         }
+      }, 1500);
+      return;
+    }
 
-        if (device) {
-          const isTargetName = device.name === DEVICE_NAME || device.localName === DEVICE_NAME;
-          const isTargetUuid = device.serviceUUIDs?.includes(SERVICE_UUID);
+    // Native implementation
+    if (this.manager) {
+      this.manager.startDeviceScan(
+        null,
+        { allowDuplicates: false },
+        (error, device) => {
+          if (error) {
+            console.error('[BLE] Error saat scan:', error);
+            this.setConnectionState('disconnected');
+            this.manager?.stopDeviceScan();
+            return;
+          }
 
-          if (isTargetName || isTargetUuid) {
-            console.log(`[BLE] Perangkat ditemukan: ${device.name || 'No Name'} (${device.id})`);
-            if (onDeviceFound) {
-              onDeviceFound(device);
-            } else {
-              // Auto-connect jika tidak ada callback kustom
-              this.connectToDevice(device);
+          if (device) {
+            const isTargetName = device.name === DEVICE_NAME || device.localName === DEVICE_NAME;
+            const isTargetUuid = device.serviceUUIDs?.includes(SERVICE_UUID);
+
+            if (isTargetName || isTargetUuid) {
+              console.log(`[BLE] Perangkat ditemukan: ${device.name || 'No Name'} (${device.id})`);
+              if (onDeviceFound) {
+                onDeviceFound(device);
+              } else {
+                this.connectToDevice(device);
+              }
             }
           }
         }
-      }
-    );
+      );
+    }
 
-    // Timeout scan setelah 15 detik agar hemat baterai jika tidak ditemukan
+    // Timeout scan setelah 15 detik
     setTimeout(() => {
       if (this.connectionState === 'scanning') {
         console.log('[BLE] Scan timeout.');
@@ -249,7 +278,21 @@ class BipolyzerBleManager {
    * Menghentikan proses scan BLE.
    */
   public stopScan(): void {
-    this.manager.stopDeviceScan();
+    if (Platform.OS === 'web') {
+      if (this.mockTimer) {
+        clearTimeout(this.mockTimer);
+        this.mockTimer = null;
+      }
+      if (this.connectionState === 'scanning') {
+        this.setConnectionState('disconnected');
+      }
+      console.log('[BLE Mock Web] Scan dihentikan.');
+      return;
+    }
+
+    if (this.manager) {
+      this.manager.stopDeviceScan();
+    }
     if (this.connectionState === 'scanning') {
       this.setConnectionState('disconnected');
     }
@@ -264,27 +307,34 @@ class BipolyzerBleManager {
     this.setConnectionState('connecting');
     console.log(`[BLE] Menghubungkan ke ${device.id}...`);
 
-    try {
-      const connectedDevice = await this.manager.connectToDevice(device.id);
-      this.connectedDevice = connectedDevice;
-      this.setConnectionState('connected');
-      console.log('[BLE] Berhasil terhubung!');
+    if (Platform.OS === 'web') {
+      setTimeout(() => {
+        this.setConnectionState('connected');
+        console.log('[BLE Mock Web] Berhasil terhubung (Simulasi)!');
+        this.startMockDataStream();
+      }, 1000);
+      return;
+    }
 
-      // Set up disconnect listener
-      connectedDevice.onDisconnected((error, d) => {
-        console.log(`[BLE] Perangkat terputus: ${d.id}`, error || '');
+    if (this.manager) {
+      try {
+        const connectedDevice = await this.manager.connectToDevice(device.id);
+        this.connectedDevice = connectedDevice;
+        this.setConnectionState('connected');
+        console.log('[BLE] Berhasil terhubung!');
+
+        connectedDevice.onDisconnected((error, d) => {
+          console.log(`[BLE] Perangkat terputus: ${d.id}`, error || '');
+          this.handleDisconnect();
+        });
+
+        await connectedDevice.discoverAllServicesAndCharacteristics();
+        this.subscribeToNotifications(connectedDevice);
+
+      } catch (error) {
+        console.error('[BLE] Gagal menghubungkan:', error);
         this.handleDisconnect();
-      });
-
-      // Temukan semua services dan characteristics
-      await connectedDevice.discoverAllServicesAndCharacteristics();
-      
-      // Subscribe ke data notification
-      this.subscribeToNotifications(connectedDevice);
-
-    } catch (error) {
-      console.error('[BLE] Gagal menghubungkan:', error);
-      this.handleDisconnect();
+      }
     }
   }
 
@@ -309,16 +359,12 @@ class BipolyzerBleManager {
 
         if (char?.value) {
           try {
-            // 1. Decode base64 value ke UTF-8 string
             const rawJsonStr = base64ToUtf8(char.value);
-            
-            // 2. Parse JSON ke model data raw sensor
             const rawSensorData: RawSensorData = JSON.parse(rawJsonStr);
             
             // Trigger callbacks data mentah
             this.onRawDataCallbacks.forEach((cb) => cb(rawSensorData));
 
-            // 3. Inject timestamp sistem ponsel dan normalisasi ke format pipeline
             const timestamp = new Date().toISOString();
             const normalizedPayload = this.normalizeToPipeline(rawSensorData, timestamp);
 
@@ -361,9 +407,57 @@ class BipolyzerBleManager {
   }
 
   /**
+   * Memulai aliran simulasi data mentah berkala di browser web.
+   */
+  private startMockDataStream() {
+    this.stopMockDataStream();
+    console.log('[BLE Mock Web] Memulai aliran data simulasi sirkadian...');
+
+    this.mockStreamInterval = setInterval(() => {
+      if (this.connectionState !== 'connected') return;
+
+      // Buat data sensor yang realistis
+      const mockRawData: RawSensorData = {
+        uid: 'user_mock_web',
+        acc: [
+          Number((Math.random() * 0.4 - 0.2).toFixed(3)),
+          Number((Math.random() * 0.4 - 0.2).toFixed(3)),
+          Number((9.8 + Math.random() * 0.3).toFixed(3)),
+        ],
+        gyr: [
+          Number((Math.random() * 0.1 - 0.05).toFixed(3)),
+          Number((Math.random() * 0.1 - 0.05).toFixed(3)),
+          Number((Math.random() * 0.1 - 0.05).toFixed(3)),
+        ],
+        bpm: 65 + Math.floor(Math.random() * 20),
+        rr: Array.from({ length: 25 }, () => 800 + Math.floor(Math.random() * 150)),
+        aRms: Number((0.01 + Math.random() * 0.05).toFixed(4)),
+        // aZcr adalah proxy vocal F0, buat naik turun sesekali untuk simulasi anomali (>2.0 zscore)
+        aZcr: Math.random() > 0.85 ? 250 : 120 + Math.floor(Math.random() * 30),
+      };
+
+      // Siarkan ke subscriber
+      this.onRawDataCallbacks.forEach((cb) => cb(mockRawData));
+    }, 4000); // interval 4 detik agar demo terasa responsif
+  }
+
+  /**
+   * Menghentikan aliran simulasi data mentah.
+   */
+  private stopMockDataStream() {
+    if (this.mockStreamInterval) {
+      clearInterval(this.mockStreamInterval);
+      this.mockStreamInterval = null;
+    }
+  }
+
+  /**
    * Membersihkan status saat perangkat terputus atau koneksi gagal.
    */
   private handleDisconnect(): void {
+    if (Platform.OS === 'web') {
+      this.stopMockDataStream();
+    }
     if (this.characteristicSubscription) {
       this.characteristicSubscription.remove();
       this.characteristicSubscription = null;
@@ -376,7 +470,13 @@ class BipolyzerBleManager {
    * Memutuskan koneksi secara manual.
    */
   public async disconnect(): Promise<void> {
-    if (this.connectedDevice) {
+    if (Platform.OS === 'web') {
+      console.log('[BLE Mock Web] Memutuskan koneksi simulasi...');
+      this.handleDisconnect();
+      return;
+    }
+
+    if (this.connectedDevice && this.manager) {
       console.log(`[BLE] Memutuskan koneksi manual dari ${this.connectedDevice.id}...`);
       try {
         await this.manager.cancelDeviceConnection(this.connectedDevice.id);
