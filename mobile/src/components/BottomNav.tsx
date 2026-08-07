@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { styles } from '../constants/theme';
 
 export type TabName = 'Beranda' | 'Tren' | 'Pengaturan' | 'Riwayat';
@@ -17,8 +18,10 @@ const tabs: { name: TabName; icon: any; label: string }[] = [
 ];
 
 export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabPress }) => {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.navBar}>
+    <View style={[styles.navBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
       {tabs.map((tab) => (
         <TouchableOpacity
           key={tab.name}

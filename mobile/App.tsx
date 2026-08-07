@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Platform, Image, SafeAreaView, ScrollView, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Device } from 'react-native-ble-plx';
 
 import { bleManager, ConnectionState } from './src/services/bleManager';
@@ -20,6 +21,14 @@ import { LockScreen } from './src/components/LockScreen';
 import { SplashScreen } from './src/components/SplashScreen';
 
 export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AppContent />
+    </SafeAreaProvider>
+  );
+}
+
+function AppContent() {
   const [activeTab, setActiveTab] = useState<TabName>('Beranda');
   const [bleConnectionState, setBleConnectionState] = useState<ConnectionState>('disconnected');
   const [scannedDevices, setScannedDevices] = useState<Device[]>([]);
