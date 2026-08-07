@@ -1,70 +1,63 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { DbFeatureVector } from '../database/queries';
 import { EDU_ARTICLES, EduArticle } from '../data/educationContent';
+import { buildEpisodes, PhaseEpisode } from '../circadian/phaseClassifier';
 import { styles } from '../constants/theme';
 
 interface RiwayatScreenProps {
   historicalVectors: DbFeatureVector[];
 }
 
-const FALLBACK_HISTORY = [
-  { title: 'Fase Stabil', sub: 'Hari ini · berlangsung 18 jam', icon: '✓', iconStyle: 'stabil' as const },
-  { title: 'Potensi Manik Ringan', sub: 'Kam, 19 Jun · 6 jam', icon: '⚠', iconStyle: 'manik' as const },
-  { title: 'Fase Stabil', sub: 'Sel–Rab, 10–18 Jun · 8 hari', icon: '✓', iconStyle: 'stabil' as const },
-  { title: 'Potensi Depresi', sub: 'Sen, 09 Jun · 1 hari', icon: '☹', iconStyle: 'depresi' as const },
-];
+function getIconStyle(phase: string) {
+  switch (phase) {
+    case 'manik': return styles.riwayatIconManik;
+    case 'depresi': return styles.riwayatIconDepresi;
+    default: return styles.riwayatIconStabil;
+  }
+}
+
+function getIconChar(phase: string): string {
+  switch (phase) {
+    case 'manik': return '⚠';
+    case 'depresi': return '☹';
+    case 'gated': return '🛡';
+    default: return '✓';
+  }
+}
 
 export const RiwayatScreen: React.FC<RiwayatScreenProps> = ({ historicalVectors }) => {
   const [selectedArticle, setSelectedArticle] = useState<EduArticle | null>(null);
+
+  const episodes = useMemo(() => buildEpisodes(historicalVectors), [historicalVectors]);
 
   return (
     <View style={styles.riwayatContainer}>
       <Text style={styles.riwayatTitle}>Riwayat Deteksi</Text>
       <Text style={styles.riwayatSubtitle}>Semua Catatan Fase</Text>
 
-      {historicalVectors.length > 0 ? (
-        historicalVectors.map((fv) => (
-          <View key={fv.epoch_id} style={styles.riwayatCard}>
-            <View style={[
-              styles.riwayatIcon,
-              fv.circadian_valid === 1 ? styles.riwayatIconStabil : styles.riwayatIconManik,
-            ]}>
-              <Text style={styles.riwayatIconText}>
-                {fv.circadian_valid === 1 ? '✓' : '⚠'}
-              </Text>
+      {episodes.length > 0 ? (
+        episodes.map((episode) => (
+          <View key={episode.id} style={styles.riwayatCard}>
+            <View style={[styles.riwayatIcon, getIconStyle(episode.phase)]}>
+              <Text style={styles.riwayatIconText}>{getIconChar(episode.phase)}</Text>
             </View>
             <View style={styles.riwayatCardText}>
-              <Text style={styles.riwayatCardTitle}>
-                {fv.circadian_valid === 1
-                  ? `Fase Stabil (${fv.window_name})`
-                  : fv.suppressed_reason
-                    ? `Fase Stabil (Gated: ${fv.suppressed_reason})`
-                    : `Potensi Relaps/Anomali (${fv.window_name})`}
-              </Text>
-              <Text style={styles.riwayatCardSub}>
-                {new Date(fv.timestamp).toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit' })} · HRV: {fv.hrv_rmssd?.toFixed(0)} ms · Vocal: {fv.vocal_f0?.toFixed(0)}
-              </Text>
+              <Text style={styles.riwayatCardTitle}>{episode.title}</Text>
+              <Text style={styles.riwayatCardSub}>{episode.subtitle}</Text>
             </View>
           </View>
         ))
       ) : (
-        FALLBACK_HISTORY.map((item, idx) => (
-          <View key={idx} style={styles.riwayatCard}>
-            <View style={[
-              styles.riwayatIcon,
-              item.iconStyle === 'stabil' ? styles.riwayatIconStabil
-                : item.iconStyle === 'manik' ? styles.riwayatIconManik
-                : styles.riwayatIconDepresi,
-            ]}>
-              <Text style={styles.riwayatIconText}>{item.icon}</Text>
-            </View>
-            <View style={styles.riwayatCardText}>
-              <Text style={styles.riwayatCardTitle}>{item.title}</Text>
-              <Text style={styles.riwayatCardSub}>{item.sub}</Text>
-            </View>
+        <View style={styles.riwayatCard}>
+          <View style={[styles.riwayatIcon, styles.riwayatIconStabil]}>
+            <Text style={styles.riwayatIconText}>—</Text>
           </View>
-        ))
+          <View style={styles.riwayatCardText}>
+            <Text style={styles.riwayatCardTitle}>Belum Ada Riwayat</Text>
+            <Text style={styles.riwayatCardSub}>Hubungkan gelang untuk memulai deteksi sirkadian</Text>
+          </View>
+        </View>
       )}
 
       {selectedArticle === null ? (
