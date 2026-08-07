@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Image, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, TextInput, Image, Linking, Alert } from 'react-native';
 import { ConnectionState } from '../services/bleManager';
 import { notificationService } from '../services/notificationService';
+import {
+  getEmergencyContacts,
+  insertEmergencyContact,
+  deleteEmergencyContact,
+  DbEmergencyContact,
+} from '../database/queries';
 import { styles } from '../constants/theme';
 
 interface Reminder {
@@ -23,16 +29,84 @@ const DEFAULT_REMINDERS: Reminder[] = [
   { id: '3', label: 'Minum Obat Malam', time: '21:00', active: false, type: 'obat' },
 ];
 
+function formatPhone(phone: string): string {
+  const cleaned = phone.replace(/\D/g, '');
+  if (cleaned.startsWith('62')) {
+    return `+${cleaned.slice(0, 2)} ${cleaned.slice(2, 6)}-${cleaned.slice(6, 10)}-${cleaned.slice(10)}`;
+  }
+  if (cleaned.startsWith('0')) {
+    return `+62 ${cleaned.slice(1, 5)}-${cleaned.slice(5, 9)}-${cleaned.slice(9)}`;
+  }
+  return phone;
+}
+
+function getInitials(name: string): string {
+  return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+}
+
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionState, onOpenBleScanner }) => {
   const [notifFaseOn, setNotifFaseOn] = useState(true);
   const [notifHarianOn, setNotifHarianOn] = useState(false);
-
   const [reminders, setReminders] = useState<Reminder[]>(DEFAULT_REMINDERS);
-
   const [showAddForm, setShowAddForm] = useState(false);
   const [newLabel, setNewLabel] = useState('');
   const [newTime, setNewTime] = useState('08:00');
   const [newType, setNewType] = useState<'obat' | 'olahraga'>('obat');
+
+  const [emergencyContacts, setEmergencyContacts] = useState<DbEmergencyContact[]>([]);
+  const [showAddContactForm, setShowAddContactForm] = useState(false);
+  const [newContactName, setNewContactName] = useState('');
+  const [newContactPhone, setNewContactPhone] = useState('');
+  const [selectedContact, setSelectedContact] = useState<DbEmergencyContact | null>(null);
+
+  useEffect(() => {
+    loadEmergencyContacts();
+  }, []);
+
+  const loadEmergencyContacts = async () => {
+    try {
+      const contacts = await getEmergencyContacts();
+      setEmergencyContacts(contacts);
+    } catch (err) {
+      console.warn('Gagal memuat kontak darurat:', err);
+    }
+  };
+
+  const handleAddContact = async () => {
+    if (!newContactName.trim() || !newContactPhone.trim()) return;
+    await insertEmergencyContact(newContactName.trim(), newContactPhone.trim());
+    setNewContactName('');
+    setNewContactPhone('');
+    setShowAddContactForm(false);
+    await loadEmergencyContacts();
+  };
+
+  const handleDeleteContact = async (contactId: string) => {
+    await deleteEmergencyContact(contactId);
+    setSelectedContact(null);
+    await loadEmergencyContacts();
+  };
+
+  const handleCall = (phone: string) => {
+    const cleaned = phone.replace(/\D/g, '');
+    const formatted = cleaned.startsWith('0') ? `+62${cleaned.slice(1)}` : cleaned;
+    Linking.openURL(`tel:${formatted}`);
+    setSelectedContact(null);
+  };
+
+  const handleSms = (phone: string) => {
+    const cleaned = phone.replace(/\D/g, '');
+    const formatted = cleaned.startsWith('0') ? `+62${cleaned.slice(1)}` : cleaned;
+    Linking.openURL(`sms:${formatted}`);
+    setSelectedContact(null);
+  };
+
+  const handleWhatsapp = (phone: string) => {
+    const cleaned = phone.replace(/\D/g, '');
+    const formatted = cleaned.startsWith('0') ? `62${cleaned.slice(1)}` : cleaned;
+    Linking.openURL(`https://wa.me/${formatted}`);
+    setSelectedContact(null);
+  };
 
   const parseTime = (time: string): { hour: number; minute: number } => {
     const [h, m] = time.split(':').map(Number);
@@ -43,18 +117,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
 
   const scheduleReminderNotif = async (reminder: Reminder) => {
     const { hour, minute } = parseTime(reminder.time);
-    const notifType = reminder.type === 'obat' ? 'medication' : 'exercise';
     const title = reminder.type === 'obat' ? '💊 Minum Obat' : '🏃 Olahraga';
     const body = `${reminder.label} — ${reminder.time}`;
-
-    await notificationService.scheduleReminder(
-      reminder.id,
-      title,
-      body,
-      hour,
-      minute,
-      allDays
-    );
+    await notificationService.scheduleReminder(reminder.id, title, body, hour, minute, allDays);
   };
 
   const toggleReminder = async (id: string) => {
@@ -63,13 +128,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
         if (rem.id !== id) return rem;
         const newActive = !rem.active;
         const updatedRem = { ...rem, active: newActive };
-
         if (newActive) {
           scheduleReminderNotif(updatedRem);
         } else {
           notificationService.cancelReminder(id);
         }
-
         return updatedRem;
       });
       return updated;
@@ -128,10 +191,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
 
       <View style={styles.settingSection}>
         <Text style={styles.settingSectionLabel}>PERANGKAT</Text>
-        <TouchableOpacity
-          style={styles.settingRow}
-          onPress={onOpenBleScanner}
-        >
+        <TouchableOpacity style={styles.settingRow} onPress={onOpenBleScanner}>
           <View style={styles.settingRowLeft}>
             <Text style={styles.settingRowTitle}>Koneksi Gelang</Text>
             <Text style={styles.settingRowSub}>
@@ -190,7 +250,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
                   <Text style={styles.reminderTime}>{reminder.time} · {reminder.type === 'obat' ? 'Obat' : 'Olahraga'}</Text>
                 </View>
               </View>
-
               <View style={styles.reminderRightActions}>
                 <TouchableOpacity
                   style={[styles.toggle, reminder.active ? styles.toggleOn : styles.toggleOff]}
@@ -198,11 +257,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
                 >
                   <View style={[styles.toggleThumb, reminder.active ? styles.toggleThumbOn : styles.toggleThumbOff]} />
                 </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.deleteReminderTextBtn}
-                  onPress={() => handleDeleteReminder(reminder.id)}
-                >
+                <TouchableOpacity style={styles.deleteReminderTextBtn} onPress={() => handleDeleteReminder(reminder.id)}>
                   <Text style={styles.deleteReminderText}>Hapus</Text>
                 </TouchableOpacity>
               </View>
@@ -220,7 +275,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
               onChangeText={setNewLabel}
               placeholderTextColor="#A89CB8"
             />
-
             <Text style={styles.formLabel}>Waktu (Jam)</Text>
             <TextInput
               style={styles.formInput}
@@ -229,7 +283,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
               onChangeText={setNewTime}
               placeholderTextColor="#A89CB8"
             />
-
             <Text style={styles.formLabel}>Kategori</Text>
             <View style={styles.formTypeRow}>
               <TouchableOpacity
@@ -238,7 +291,6 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
               >
                 <Text style={[styles.formTypeBtnText, newType === 'obat' && styles.formTypeBtnTextActive]}> Obat</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={[styles.formTypeBtn, newType === 'olahraga' && styles.formTypeBtnActive]}
                 onPress={() => setNewType('olahraga')}
@@ -246,19 +298,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
                 <Text style={[styles.formTypeBtnText, newType === 'olahraga' && styles.formTypeBtnTextActive]}> Olahraga</Text>
               </TouchableOpacity>
             </View>
-
             <View style={styles.formActions}>
-              <TouchableOpacity
-                style={styles.formCancelBtn}
-                onPress={() => setShowAddForm(false)}
-              >
+              <TouchableOpacity style={styles.formCancelBtn} onPress={() => setShowAddForm(false)}>
                 <Text style={styles.formCancelBtnText}>Batal</Text>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.formSaveBtn}
-                onPress={handleSaveReminder}
-              >
+              <TouchableOpacity style={styles.formSaveBtn} onPress={handleSaveReminder}>
                 <Text style={styles.formSaveBtnText}>Simpan</Text>
               </TouchableOpacity>
             </View>
@@ -275,11 +319,142 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
       </View>
 
       <View style={styles.settingSection}>
-        <TouchableOpacity style={[styles.settingRow, styles.settingRowNoBorder]}>
-          <Text style={styles.settingRowTitleBold}>Kontak darurat</Text>
-          <Text style={styles.settingRowChevron}>›</Text>
-        </TouchableOpacity>
+        <Text style={styles.settingSectionLabel}>KONTAK DARURAT</Text>
+
+        {emergencyContacts.map((contact, index) => {
+          const isLast = index === emergencyContacts.length - 1 && !showAddContactForm;
+          return (
+            <TouchableOpacity
+              key={contact.contact_id}
+              style={[styles.emergencyContactRow, isLast && styles.emergencyContactRowLast]}
+              onPress={() => setSelectedContact(contact)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.emergencyContactAvatar}>
+                <Text style={styles.emergencyContactAvatarText}>{getInitials(contact.name)}</Text>
+              </View>
+              <View style={styles.emergencyContactInfo}>
+                <Text style={styles.emergencyContactName}>{contact.name}</Text>
+                <Text style={styles.emergencyContactPhone}>{formatPhone(contact.phone)}</Text>
+              </View>
+              <Text style={styles.settingRowChevron}>›</Text>
+            </TouchableOpacity>
+          );
+        })}
+
+        {showAddContactForm ? (
+          <View style={styles.addReminderForm}>
+            <Text style={styles.formLabel}>Nama</Text>
+            <TextInput
+              style={styles.formInput}
+              placeholder="Contoh: Mama"
+              value={newContactName}
+              onChangeText={setNewContactName}
+              placeholderTextColor="#A89CB8"
+            />
+            <Text style={styles.formLabel}>Nomor Telepon</Text>
+            <TextInput
+              style={styles.formInput}
+              placeholder="Contoh: 081234567890"
+              value={newContactPhone}
+              onChangeText={setNewContactPhone}
+              keyboardType="phone-pad"
+              placeholderTextColor="#A89CB8"
+            />
+            <View style={styles.formActions}>
+              <TouchableOpacity
+                style={styles.formCancelBtn}
+                onPress={() => {
+                  setShowAddContactForm(false);
+                  setNewContactName('');
+                  setNewContactPhone('');
+                }}
+              >
+                <Text style={styles.formCancelBtnText}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.formSaveBtn} onPress={handleAddContact}>
+                <Text style={styles.formSaveBtnText}>Simpan</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.addReminderBtn}
+            onPress={() => setShowAddContactForm(true)}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.addReminderBtnText}>+ Tambah Kontak Darurat</Text>
+          </TouchableOpacity>
+        )}
       </View>
+
+      {selectedContact && (
+        <TouchableOpacity
+          style={styles.actionModalOverlay}
+          activeOpacity={1}
+          onPress={() => setSelectedContact(null)}
+        >
+          <View style={styles.actionModalContent}>
+            <View style={styles.actionModalHeader}>
+              <View style={styles.actionModalAvatar}>
+                <Text style={styles.actionModalAvatarText}>{getInitials(selectedContact.name)}</Text>
+              </View>
+              <View>
+                <Text style={styles.actionModalName}>{selectedContact.name}</Text>
+                <Text style={styles.actionModalPhone}>{formatPhone(selectedContact.phone)}</Text>
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.actionButton, styles.actionButtonCall]}
+              onPress={() => handleCall(selectedContact.phone)}
+            >
+              <Text style={styles.actionButtonIcon}>📞</Text>
+              <Text style={[styles.actionButtonText, styles.actionButtonTextCall]}>Telepon</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, styles.actionButtonSms]}
+              onPress={() => handleSms(selectedContact.phone)}
+            >
+              <Text style={styles.actionButtonIcon}>💬</Text>
+              <Text style={[styles.actionButtonText, styles.actionButtonTextSms]}>SMS</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, styles.actionButtonWhatsapp]}
+              onPress={() => handleWhatsapp(selectedContact.phone)}
+            >
+              <Text style={styles.actionButtonIcon}>🟢</Text>
+              <Text style={[styles.actionButtonText, styles.actionButtonTextWhatsapp]}>WhatsApp</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, styles.actionButtonDelete]}
+              onPress={() => {
+                Alert.alert(
+                  'Hapus Kontak',
+                  `Hapus ${selectedContact.name} dari kontak darurat?`,
+                  [
+                    { text: 'Batal', style: 'cancel' },
+                    { text: 'Hapus', style: 'destructive', onPress: () => handleDeleteContact(selectedContact.contact_id) },
+                  ]
+                );
+              }}
+            >
+              <Text style={styles.actionButtonIcon}>🗑</Text>
+              <Text style={[styles.actionButtonText, styles.actionButtonTextDelete]}>Hapus Kontak</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, styles.actionButtonCancel]}
+              onPress={() => setSelectedContact(null)}
+            >
+              <Text style={[styles.actionButtonText, styles.actionButtonTextCancel]}>Batal</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };

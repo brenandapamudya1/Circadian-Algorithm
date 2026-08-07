@@ -1155,4 +1155,142 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 15,
   },
+
+  // ==================== EMERGENCY CONTACTS ====================
+  emergencyContactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.2)',
+  },
+  emergencyContactRowLast: {
+    borderBottomWidth: 0,
+  },
+  emergencyContactAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  emergencyContactAvatarText: {
+    fontSize: 18,
+    color: colors.white,
+    fontWeight: '700',
+  },
+  emergencyContactInfo: {
+    flex: 1,
+  },
+  emergencyContactName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.white,
+    marginBottom: 2,
+  },
+  emergencyContactPhone: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '500',
+  },
+  actionModalOverlay: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+    zIndex: 9999,
+  },
+  actionModalContent: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 30,
+    width: '100%',
+  },
+  actionModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8DFF5',
+  },
+  actionModalAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.veryLightPurple,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  actionModalAvatarText: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.accent,
+  },
+  actionModalName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.darkPurple,
+    marginBottom: 2,
+  },
+  actionModalPhone: {
+    fontSize: 13,
+    color: colors.textLight,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  actionButtonCall: {
+    backgroundColor: '#E8F5E9',
+  },
+  actionButtonSms: {
+    backgroundColor: '#E3F2FD',
+  },
+  actionButtonWhatsapp: {
+    backgroundColor: '#E8F5E9',
+  },
+  actionButtonDelete: {
+    backgroundColor: '#FFEBEE',
+  },
+  actionButtonCancel: {
+    backgroundColor: '#F5F5F5',
+    marginTop: 4,
+  },
+  actionButtonIcon: {
+    fontSize: 20,
+    marginRight: 12,
+  },
+  actionButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  actionButtonTextCall: {
+    color: '#2E7D32',
+  },
+  actionButtonTextSms: {
+    color: '#1565C0',
+  },
+  actionButtonTextWhatsapp: {
+    color: '#2E7D32',
+  },
+  actionButtonTextDelete: {
+    color: '#C62828',
+  },
+  actionButtonTextCancel: {
+    color: colors.textLight,
+    textAlign: 'center' as const,
+  },
 });
