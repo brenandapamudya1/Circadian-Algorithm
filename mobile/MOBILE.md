@@ -155,6 +155,17 @@ CREATE TABLE IF NOT EXISTS notification_logs (
 );
 ```
 
+### G. Tabel `emergency_contacts` *(Baru — Kontak Darurat)*
+Menyimpan daftar kontak darurat pengguna untuk situasi krisis.
+```sql
+CREATE TABLE IF NOT EXISTS emergency_contacts (
+    contact_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    phone TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
 ---
 
 ## 4. Struktur Folder Project (React Native Tree)
@@ -256,6 +267,26 @@ Sistem notifikasi menggunakan `expo-notifications` untuk push notification lokal
 - **BT OFF:** Tampil pesan "Bluetooth Tidak Aktif" + polling setiap 2 detik
 - **BT ON:** Auto-scan langsung
 - **Web (HTTP):** Hardcoded 'on' karena Web Bluetooth API butuh HTTPS
+
+---
+
+## 5b. Kontak Darurat
+
+Fitur kontak darurat memungkinkan pengguna menyimpan daftar kontak yang dapat dihubungi saat situasi krisis.
+
+### Aksi saat Tap Kontak
+
+| Aksi | Implementasi | URL Scheme |
+|:---|:---|:---|
+| **Telepon** | Buka dialer HP | `tel:+628...` |
+| **SMS** | Buka app SMS | `sms:+628...` |
+| **WhatsApp** | Buka chat WhatsApp | `https://wa.me/628...` |
+| **Hapus** | Hapus dari daftar (dengan konfirmasi) | — |
+
+### Format Nomor Telepon
+- Input: `081234567890` atau `6281234567890`
+- Display: `+62 812-3456-7890`
+- Auto-convert prefix `0` → `+62` untuk aksi Telepon/SMS/WhatsApp
 
 ---
 
