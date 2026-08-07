@@ -90,6 +90,13 @@ export async function initDatabase(): Promise<void> {
           sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           confirmed_at DATETIME
       );
+
+      CREATE TABLE IF NOT EXISTS emergency_contacts (
+          contact_id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          phone TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
     `);
 
     console.log('[SQLite] Tabel berhasil diinisialisasi.');
