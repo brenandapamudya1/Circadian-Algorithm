@@ -70,6 +70,13 @@ export interface DbNotificationLog {
   confirmed_at: string | null;
 }
 
+export interface DbEmergencyContact {
+  contact_id: string;
+  name: string;
+  phone: string;
+  created_at?: string;
+}
+
 // ── 1. CIRCADIAN BASELINES QUERIES ──────────────────────────────────────────
 
 export async function getBaselineFromDb(windowName: string): Promise<DbBaseline | null> {
@@ -290,4 +297,28 @@ export async function getTodayAnomalies(): Promise<DbFeatureVector[]> {
      AND date(timestamp) = date('now')
      ORDER BY timestamp ASC;`
   );
+}
+
+// ── 7. EMERGENCY CONTACTS QUERIES ───────────────────────────────────────────
+
+export async function getEmergencyContacts(): Promise<DbEmergencyContact[]> {
+  const db = await getDb();
+  return db.getAllAsync<DbEmergencyContact>(
+    'SELECT * FROM emergency_contacts ORDER BY name ASC;'
+  );
+}
+
+export async function insertEmergencyContact(name: string, phone: string): Promise<string> {
+  const db = await getDb();
+  const contactId = `ec_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  await db.runAsync(
+    'INSERT INTO emergency_contacts (contact_id, name, phone) VALUES (?, ?, ?);',
+    [contactId, name, phone]
+  );
+  return contactId;
+}
+
+export async function deleteEmergencyContact(contactId: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('DELETE FROM emergency_contacts WHERE contact_id = ?;', [contactId]);
 }
