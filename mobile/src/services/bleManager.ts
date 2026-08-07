@@ -44,6 +44,7 @@ export interface PipelinePayload {
 }
 
 export type ConnectionState = 'disconnected' | 'scanning' | 'connecting' | 'connected';
+export type BluetoothState = 'on' | 'off' | 'unsupported';
 
 export type RawDataCallback = (data: RawSensorData) => void;
 export type PipelineDataCallback = (data: PipelinePayload) => void;
@@ -169,6 +170,32 @@ class BipolyzerBleManager {
    */
   public getConnectionState(): ConnectionState {
     return this.connectionState;
+  }
+
+  public async checkBluetoothState(): Promise<BluetoothState> {
+    if (Platform.OS === 'web') {
+      const nav = navigator as any;
+      if (typeof nav !== 'undefined' && nav.bluetooth) {
+        try {
+          const available = await nav.bluetooth.getAvailability();
+          return available ? 'on' : 'off';
+        } catch {
+          return 'on';
+        }
+      }
+      return 'on';
+    }
+
+    if (!this.manager) return 'unsupported';
+
+    try {
+      const state = await this.manager.state();
+      if (state === 'PoweredOn') return 'on';
+      if (state === 'Unsupported' || state === 'Unauthorized') return 'unsupported';
+      return 'off';
+    } catch {
+      return 'off';
+    }
   }
 
   /**

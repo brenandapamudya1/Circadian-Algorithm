@@ -140,6 +140,21 @@ CREATE TABLE IF NOT EXISTS gamification_progress (
 );
 ```
 
+### F. Tabel `notification_logs` *(Baru — Sistem Notifikasi)*
+Menyimpan log notifikasi yang telah dikirim untuk tracking konfirmasi dan menghindari redundansi.
+```sql
+CREATE TABLE IF NOT EXISTS notification_logs (
+    log_id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,              -- 'phase_summary' | 'medication' | 'exercise' | 'daily_check'
+    reference_id TEXT,               -- reminder_id atau tanggal (YYYY-MM-DD) untuk phase_summary
+    title TEXT NOT NULL,
+    body TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'sent', -- 'sent' | 'confirmed' | 'dismissed'
+    sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    confirmed_at DATETIME
+);
+```
+
 ---
 
 ## 4. Struktur Folder Project (React Native Tree)
@@ -152,34 +167,40 @@ mobile/
 ├── MOBILE.md                    ← Dokumen ini
 ├── package.json
 ├── tsconfig.json
-├── App.tsx                      ← Entrypoint & navigasi tab utama
+├── App.tsx                      ← Entrypoint & orchestrator (slim)
 │
 ├── assets/
-│   └── ICON_HOMEPAGE/           ← Ikon PNG custom (heart, mic, moon, dll.)
+│   ├── ICON_HOMEPAGE/           ← Ikon PNG custom (heart, mic, moon, dll.)
+│   ├── edu/                     ← Thumbnail artikel edukasi
+│   └── lockscreen/              ← Aset lock screen
 │
 └── src/
+    ├── constants/
+    │   └── theme.ts             ← Semua StyleSheet & color definitions
+    │
     ├── components/              ← UI reusable
-    │   ├── BleDeviceCard.tsx
-    │   ├── MetricChart.tsx      ← Komponen grafik SVG tren
-    │   ├── MoodInputModal.tsx   ← Modal input mood harian
-    │   ├── PhaseBanner.tsx      ← Banner kontekstual fase aktif
-    │   ├── StreakBadge.tsx      ← Badge streak harian di Beranda
-    │   └── StatusIndicator.tsx
+    │   ├── AlertPanel.tsx       ← Alert anomali/gating/normal/disconnected
+    │   ├── BleScannerModal.tsx  ← Modal scan BLE + BT state checker
+    │   ├── BottomNav.tsx        ← Bottom tab navigation
+    │   ├── LockScreen.tsx       ← Layar kunci PIN
+    │   ├── MetricCard.tsx       ← Card metric Beranda
+    │   ├── ProgressRing.tsx     ← Ring progress mood tracker
+    │   ├── SplashScreen.tsx     ← Splash overlay
+    │   └── TrendChart.tsx       ← Komponen grafik SVG tren (flexibel)
     │
     ├── data/
-    │   └── education_content.json  ← Konten edukasi per fase (bundled, offline)
+    │   └── educationContent.ts  ← Konten edukasi per fase (bundled)
     │
     ├── database/                ← Pengelolaan SQLite
     │   ├── sqlite.ts            ← Inisialisasi DB & Eksekusi Query
     │   └── queries.ts           ← CRUD: baselines, feature_vectors,
-    │                               mood_logs, reminders, gamification
+    │                               mood_logs, reminders, gamification,
+    │                               notification_logs
     │
     ├── services/                ← Background services
-    │   ├── bleManager.ts        ← Logika Scan, Connect, dan Listen BLE
-    │   ├── syncService.ts       ← Buffer BLE ke SQLite
-    │   ├── notificationService.ts ← Scheduling & cancel local push notifications
-    │   ├── gamificationService.ts ← Kalkulasi poin & trigger badge
-    │   └── authService.ts       ← Verifikasi PIN (hash) & biometrik
+    │   ├── bleManager.ts        ← Logika Scan, Connect, Listen BLE + BT state
+    │   ├── syncService.ts       ← Buffer BLE → Pipeline → SQLite
+    │   └── notificationService.ts ← Scheduling, cancel, phase summary
     │
     ├── circadian/               ← Porting Logika Python → TypeScript
     │   ├── windowClassifier.ts
@@ -188,39 +209,73 @@ mobile/
     │   ├── gatingRules.ts
     │   └── pipeline.ts
     │
-    ├── store/                   ← State management (Zustand)
-    │   └── useBleStore.ts
-    │
     └── views/                   ← Halaman aplikasi
         ├── HomeScreen.tsx       ← Dashboard real-time (Tab Beranda)
-        ├── TrenScreen.tsx       ← Grafik HRV, Vokal & Mood (Tab Tren)
-        ├── SettingsScreen.tsx   ← Pengaturan & Reminder (Tab Pengaturan)
-        ├── HistoryScreen.tsx    ← Riwayat fase sirkadian (Tab Riwayat)
-        ├── EdukasiScreen.tsx    ← Daftar artikel edukasi per fase
-        ├── EdukasiDetailScreen.tsx ← Konten artikel lengkap
-        ├── RewardScreen.tsx     ← Koleksi badge & level gamifikasi
-        └── LockScreen.tsx       ← Layar kunci PIN / Biometrik
+        ├── TrenScreen.tsx       ← Grafik HRV, Vokal (Tab Tren) + filter
+        ├── SettingsScreen.tsx   ← BLE, Notifikasi, Reminder (Tab Pengaturan)
+        └── RiwayatScreen.tsx    ← Riwayat fase + artikel edukasi (Tab Riwayat)
 ```
 
 ---
 
-## 5. Manajemen Retensi Data (Cache Cleanup)
+## 5. Sistem Notifikasi
+
+Sistem notifikasi menggunakan `expo-notifications` untuk push notification lokal (tanpa server backend). Terdapat 4 jenis notifikasi:
+
+### A. Peringatan Fase (Phase Summary)
+- **Trigger:** Scheduled tiap hari jam 21:00 (bisa diubah)
+- **Logika:** Kumpulkan semua `feature_vectors` hari itu yang `circadian_valid = 0`
+- **Anti-redundansi:** Cek `notification_logs` sebelum kirim, skip jika sudah dikirim hari itu
+- **Isi Notifikasi:**
+
+```
+┌─────────────────────────────────────┐
+│ ⚠️ Ringkasan Sirkadian Hari Ini     │
+│                                     │
+│ 3 anomali terdeteksi hari ini:      │
+│ • MORNING (08:32) - HRV tinggi      │
+│ • AFTERNOON (14:15) - Vokal naik    │
+│ • EVENING (19:47) - IMU tidak wajar │
+│                                     │
+│ Tap untuk lihat detail →            │
+└─────────────────────────────────────┘
+```
+
+### B. Pengingat Obat/Olahraga (Reminder)
+- **Trigger:** Sesuai jadwal user dari tabel `reminders`
+- **Scheduling:** `notificationService.scheduleReminder()` dengan weekly trigger
+- **Cancel:** Otomatis saat user toggle off atau hapus reminder
+- **Anti-redundansi:** Cek `notification_logs` sebelum kirim
+
+### C. Pengingat Harian (Daily Check)
+- **Trigger:** Scheduled tiap hari jam 07:00
+- **Isi:** "Jangan lupa isi mood tracker dan cek kondisi hari ini."
+
+### D. Bluetooth State Checker
+- Saat buka modal "Koneksi Gelang", app mengecek apakah Bluetooth HP aktif
+- **BT OFF:** Tampil pesan "Bluetooth Tidak Aktif" + polling setiap 2 detik
+- **BT ON:** Auto-scan langsung
+- **Web (HTTP):** Hardcoded 'on' karena Web Bluetooth API butuh HTTPS
+
+---
+
+## 6. Manajemen Retensi Data (Cache Cleanup)
 Untuk mencegah ukuran database SQLite membesar secara eksponensial di perangkat smartphone:
 1. **Aturan Retensi:** Data pada tabel `feature_vectors` yang berumur **lebih dari 90 hari** akan dihapus secara otomatis setiap kali aplikasi diaktifkan pertama kali di hari tersebut.
 2. **Estimasi Penyimpanan:** Penggunaan data selama 1 minggu menghasilkan sekitar **~11.54 MB** (40.320 baris data). Dengan retensi 90 hari, database hanya akan menggunakan memori berkisar **~150 MB** di dalam penyimpanan HP pengguna.
 
 ---
 
-## 6. Roadmap Fitur (Client Requirements)
+## 7. Roadmap Fitur (Client Requirements)
 
 Berdasarkan hasil diskusi dengan klien, berikut adalah roadmap pengembangan 5 fitur tambahan beserta status dan prioritasnya:
 
 | Prioritas | Fitur | Status | Dependency |
 |:---:|:---|:---:|:---|
-| 🔴 Tinggi | **Keamanan Data** — Layar kunci PIN & Biometrik | `[ ] Planned` | `expo-local-authentication`, `expo-secure-store` |
+| 🔴 Tinggi | **Keamanan Data** — Layar kunci PIN & Biometrik | `[x] Done` | PIN screen implemented, biometrik planned |
 | 🔴 Tinggi | **Mood Tracker** — Input mood harian + grafik detail di Tren | `[ ] Planned` | SQLite (tabel `mood_logs`) |
-| 🟡 Sedang | **Edukasi** — Konten artikel gejala & pertolongan pertama per fase | `[ ] Planned` | `education_content.json` (bundled) |
-| 🟡 Sedang | **Reminder** — Push notification pengingat obat & olahraga | `[ ] Planned` | `expo-notifications` |
+| 🟡 Sedang | **Edukasi** — Konten artikel gejala & pertolongan pertama per fase | `[x] Done` | `educationContent.ts` (bundled, 3 artikel) |
+| 🟡 Sedang | **Notifikasi & Reminder** — Phase summary + pengingat obat/olahraga | `[x] Done` | `expo-notifications`, `notificationService.ts` |
 | 🟢 Rendah | **Gamifikasi** — Poin, badge, & reward sistem kepatuhan | `[ ] Planned` | ⚠️ Tunggu klarifikasi klien |
 
 ### Catatan Gamifikasi

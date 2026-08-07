@@ -56,6 +56,20 @@ export interface DbGamificationProgress {
   updated_at?: string;
 }
 
+export type NotificationType = 'phase_summary' | 'medication' | 'exercise' | 'daily_check';
+export type NotificationStatus = 'sent' | 'confirmed' | 'dismissed';
+
+export interface DbNotificationLog {
+  log_id: string;
+  type: NotificationType;
+  reference_id: string | null;
+  title: string;
+  body: string;
+  status: NotificationStatus;
+  sent_at: string;
+  confirmed_at: string | null;
+}
+
 // ── 1. CIRCADIAN BASELINES QUERIES ──────────────────────────────────────────
 
 export async function getBaselineFromDb(windowName: string): Promise<DbBaseline | null> {
@@ -225,5 +239,55 @@ export async function updateGamificationProgress(
          badges_unlocked = ?, updated_at = CURRENT_TIMESTAMP
      WHERE user_id = 'local_user';`,
     [points, streak, lastActiveDate, badgesUnlockedJsonStr]
+  );
+}
+
+// ── 6. NOTIFICATION LOGS QUERIES ────────────────────────────────────────────
+
+export async function insertNotificationLog(log: DbNotificationLog): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    `INSERT INTO notification_logs (log_id, type, reference_id, title, body, status, confirmed_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?);`,
+    [log.log_id, log.type, log.reference_id, log.title, log.body, log.status, log.confirmed_at]
+  );
+}
+
+export async function getTodayNotificationLogs(): Promise<DbNotificationLog[]> {
+  const db = await getDb();
+  return db.getAllAsync<DbNotificationLog>(
+    `SELECT * FROM notification_logs 
+     WHERE date(sent_at) = date('now')
+     ORDER BY sent_at DESC;`
+  );
+}
+
+export async function getNotificationLogByReference(referenceId: string): Promise<DbNotificationLog | null> {
+  const db = await getDb();
+  return db.getFirstAsync<DbNotificationLog>(
+    `SELECT * FROM notification_logs 
+     WHERE reference_id = ? AND date(sent_at) = date('now')
+     ORDER BY sent_at DESC LIMIT 1;`,
+    [referenceId]
+  );
+}
+
+export async function confirmNotificationLog(logId: string): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    `UPDATE notification_logs 
+     SET status = 'confirmed', confirmed_at = CURRENT_TIMESTAMP 
+     WHERE log_id = ?;`,
+    [logId]
+  );
+}
+
+export async function getTodayAnomalies(): Promise<DbFeatureVector[]> {
+  const db = await getDb();
+  return db.getAllAsync<DbFeatureVector>(
+    `SELECT * FROM feature_vectors 
+     WHERE circadian_valid = 0 
+     AND date(timestamp) = date('now')
+     ORDER BY timestamp ASC;`
   );
 }

@@ -115,3 +115,9 @@ mobile/tsconfig.tsbuildinfo
 
 # Expo Doctor cache
 mobile/.expo-doctor/
+
+# Build binaries and local databases
+*.apk
+*.aab
+*.db
+*.sqlite

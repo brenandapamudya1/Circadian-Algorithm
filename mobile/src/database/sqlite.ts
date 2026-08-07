@@ -79,6 +79,17 @@ export async function initDatabase(): Promise<void> {
           badges_unlocked TEXT DEFAULT '[]', -- JSON array string nama badge
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS notification_logs (
+          log_id TEXT PRIMARY KEY,
+          type TEXT NOT NULL,              -- 'phase_summary' | 'medication' | 'exercise' | 'daily_check'
+          reference_id TEXT,               -- reminder_id atau tanggal (YYYY-MM-DD) untuk phase_summary
+          title TEXT NOT NULL,
+          body TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'sent', -- 'sent' | 'confirmed' | 'dismissed'
+          sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          confirmed_at DATETIME
+      );
     `);
 
     console.log('[SQLite] Tabel berhasil diinisialisasi.');
