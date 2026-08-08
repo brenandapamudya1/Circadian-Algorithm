@@ -81,6 +81,7 @@ export interface DbEmergencyContact {
 
 export async function getBaselineFromDb(windowName: string): Promise<DbBaseline | null> {
   const db = await getDb();
+  if (!db) return null;
   return db.getFirstAsync<DbBaseline>(
     'SELECT * FROM circadian_baselines WHERE window_name = ?;',
     [windowName]
@@ -89,6 +90,7 @@ export async function getBaselineFromDb(windowName: string): Promise<DbBaseline 
 
 export async function getAllBaselinesFromDb(): Promise<DbBaseline[]> {
   const db = await getDb();
+  if (!db) return [];
   return db.getAllAsync<DbBaseline>('SELECT * FROM circadian_baselines;');
 }
 
@@ -102,6 +104,7 @@ export async function updateBaselineInDb(
   imuStd: number
 ): Promise<void> {
   const db = await getDb();
+  if (!db) return;
   await db.runAsync(
     `UPDATE circadian_baselines 
      SET hrv_rmssd_mean = ?, hrv_rmssd_std = ?, 
@@ -117,6 +120,7 @@ export async function updateBaselineInDb(
 
 export async function insertFeatureVector(fv: DbFeatureVector): Promise<void> {
   const db = await getDb();
+  if (!db) return;
   await db.runAsync(
     `INSERT OR REPLACE INTO feature_vectors (
       epoch_id, timestamp, window_name, 
@@ -143,6 +147,7 @@ export async function insertFeatureVector(fv: DbFeatureVector): Promise<void> {
 
 export async function getRecentFeatureVectors(limit: number = 50): Promise<DbFeatureVector[]> {
   const db = await getDb();
+  if (!db) return [];
   return db.getAllAsync<DbFeatureVector>(
     'SELECT * FROM feature_vectors ORDER BY timestamp DESC LIMIT ?;',
     [limit]
@@ -155,6 +160,7 @@ export async function getRecentFeatureVectors(limit: number = 50): Promise<DbFea
  */
 export async function cleanupOldFeatureVectors(daysLimit: number = 90): Promise<number> {
   const db = await getDb();
+  if (!db) return 0;
   const result = await db.runAsync(
     `DELETE FROM feature_vectors 
      WHERE datetime(timestamp) < datetime('now', '-' || ? || ' days');`,
@@ -167,6 +173,7 @@ export async function cleanupOldFeatureVectors(daysLimit: number = 90): Promise<
 
 export async function insertMoodLog(loggedDate: string, moodScore: number, note: string | null): Promise<void> {
   const db = await getDb();
+  if (!db) return;
   const logId = `${loggedDate}_${Date.now()}`;
   await db.runAsync(
     `INSERT INTO mood_logs (log_id, logged_date, mood_score, note) 
@@ -177,6 +184,7 @@ export async function insertMoodLog(loggedDate: string, moodScore: number, note:
 
 export async function getRecentMoodLogs(limit: number = 30): Promise<DbMoodLog[]> {
   const db = await getDb();
+  if (!db) return [];
   return db.getAllAsync<DbMoodLog>(
     'SELECT * FROM mood_logs ORDER BY logged_date DESC, created_at DESC LIMIT ?;',
     [limit]
@@ -187,11 +195,13 @@ export async function getRecentMoodLogs(limit: number = 30): Promise<DbMoodLog[]
 
 export async function getRemindersFromDb(): Promise<DbReminder[]> {
   const db = await getDb();
+  if (!db) return [];
   return db.getAllAsync<DbReminder>('SELECT * FROM reminders ORDER BY time ASC;');
 }
 
 export async function insertReminderInDb(reminder: DbReminder): Promise<void> {
   const db = await getDb();
+  if (!db) return;
   await db.runAsync(
     `INSERT INTO reminders (reminder_id, label, type, time, repeat_days, is_active, notification_id) 
      VALUES (?, ?, ?, ?, ?, ?, ?);`,
@@ -209,6 +219,7 @@ export async function insertReminderInDb(reminder: DbReminder): Promise<void> {
 
 export async function updateReminderStatusInDb(reminderId: string, isActive: boolean): Promise<void> {
   const db = await getDb();
+  if (!db) return;
   await db.runAsync(
     'UPDATE reminders SET is_active = ? WHERE reminder_id = ?;',
     [isActive ? 1 : 0, reminderId]
@@ -217,19 +228,18 @@ export async function updateReminderStatusInDb(reminderId: string, isActive: boo
 
 export async function deleteReminderFromDb(reminderId: string): Promise<void> {
   const db = await getDb();
+  if (!db) return;
   await db.runAsync('DELETE FROM reminders WHERE reminder_id = ?;', [reminderId]);
 }
 
 // ── 5. GAMIFICATION PROGRESS QUERIES ────────────────────────────────────────
 
-export async function getGamificationProgress(): Promise<DbGamificationProgress> {
+export async function getGamificationProgress(): Promise<DbGamificationProgress | null> {
   const db = await getDb();
+  if (!db) return null;
   const result = await db.getFirstAsync<DbGamificationProgress>(
     "SELECT * FROM gamification_progress WHERE user_id = 'local_user';"
   );
-  if (!result) {
-    throw new Error('[SQLite] Progress gamifikasi tidak ditemukan.');
-  }
   return result;
 }
 
@@ -240,6 +250,7 @@ export async function updateGamificationProgress(
   badgesUnlockedJsonStr: string
 ): Promise<void> {
   const db = await getDb();
+  if (!db) return;
   await db.runAsync(
     `UPDATE gamification_progress 
      SET total_points = ?, streak_days = ?, last_active_date = ?, 
@@ -253,6 +264,7 @@ export async function updateGamificationProgress(
 
 export async function insertNotificationLog(log: DbNotificationLog): Promise<void> {
   const db = await getDb();
+  if (!db) return;
   await db.runAsync(
     `INSERT INTO notification_logs (log_id, type, reference_id, title, body, status, confirmed_at)
      VALUES (?, ?, ?, ?, ?, ?, ?);`,
@@ -262,6 +274,7 @@ export async function insertNotificationLog(log: DbNotificationLog): Promise<voi
 
 export async function getTodayNotificationLogs(): Promise<DbNotificationLog[]> {
   const db = await getDb();
+  if (!db) return [];
   return db.getAllAsync<DbNotificationLog>(
     `SELECT * FROM notification_logs 
      WHERE date(sent_at) = date('now')
@@ -271,6 +284,7 @@ export async function getTodayNotificationLogs(): Promise<DbNotificationLog[]> {
 
 export async function getNotificationLogByReference(referenceId: string): Promise<DbNotificationLog | null> {
   const db = await getDb();
+  if (!db) return null;
   return db.getFirstAsync<DbNotificationLog>(
     `SELECT * FROM notification_logs 
      WHERE reference_id = ? AND date(sent_at) = date('now')
@@ -281,6 +295,7 @@ export async function getNotificationLogByReference(referenceId: string): Promis
 
 export async function confirmNotificationLog(logId: string): Promise<void> {
   const db = await getDb();
+  if (!db) return;
   await db.runAsync(
     `UPDATE notification_logs 
      SET status = 'confirmed', confirmed_at = CURRENT_TIMESTAMP 
@@ -291,6 +306,7 @@ export async function confirmNotificationLog(logId: string): Promise<void> {
 
 export async function getTodayAnomalies(): Promise<DbFeatureVector[]> {
   const db = await getDb();
+  if (!db) return [];
   return db.getAllAsync<DbFeatureVector>(
     `SELECT * FROM feature_vectors 
      WHERE circadian_valid = 0 
@@ -303,6 +319,7 @@ export async function getTodayAnomalies(): Promise<DbFeatureVector[]> {
 
 export async function getEmergencyContacts(): Promise<DbEmergencyContact[]> {
   const db = await getDb();
+  if (!db) return [];
   return db.getAllAsync<DbEmergencyContact>(
     'SELECT * FROM emergency_contacts ORDER BY name ASC;'
   );
@@ -310,6 +327,7 @@ export async function getEmergencyContacts(): Promise<DbEmergencyContact[]> {
 
 export async function insertEmergencyContact(name: string, phone: string): Promise<string> {
   const db = await getDb();
+  if (!db) return '';
   const contactId = `ec_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
   await db.runAsync(
     'INSERT INTO emergency_contacts (contact_id, name, phone) VALUES (?, ?, ?);',
@@ -320,5 +338,6 @@ export async function insertEmergencyContact(name: string, phone: string): Promi
 
 export async function deleteEmergencyContact(contactId: string): Promise<void> {
   const db = await getDb();
+  if (!db) return;
   await db.runAsync('DELETE FROM emergency_contacts WHERE contact_id = ?;', [contactId]);
 }

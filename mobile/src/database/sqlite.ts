@@ -1,12 +1,25 @@
 import * as SQLite from 'expo-sqlite';
+import { Platform } from 'react-native';
 
 let dbInstance: SQLite.SQLiteDatabase | null = null;
 
 /**
+ * Cek apakah database tersedia (hanya native platform)
+ */
+export function isDatabaseAvailable(): boolean {
+  return Platform.OS !== 'web';
+}
+
+/**
  * Membuka koneksi database SQLite secara asinkron (Expo SQLite modern).
  * Menggunakan pola singleton agar koneksi database yang sama digunakan di seluruh aplikasi.
+ * Pada platform web, return null karena SQLite tidak didukung.
  */
-export async function getDb(): Promise<SQLite.SQLiteDatabase> {
+export async function getDb(): Promise<SQLite.SQLiteDatabase | null> {
+  if (Platform.OS === 'web') {
+    return null;
+  }
+
   if (!dbInstance) {
     dbInstance = await SQLite.openDatabaseAsync('circadian.db');
   }
@@ -16,10 +29,20 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
 /**
  * Melakukan inisialisasi database: mengaktifkan foreign keys, membuat tabel jika belum ada,
  * dan melakukan seed data awal untuk baseline dan gamifikasi.
+ * Pada platform web, skip inisialisasi karena SQLite tidak didukung.
  */
 export async function initDatabase(): Promise<void> {
+  if (Platform.OS === 'web') {
+    console.log('[SQLite] Web platform detected - skipping database initialization');
+    return;
+  }
+
   try {
     const db = await getDb();
+    if (!db) {
+      console.warn('[SQLite] Database not available');
+      return;
+    }
 
     // Aktifkan foreign key constraints
     await db.execAsync('PRAGMA foreign_keys = ON;');

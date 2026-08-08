@@ -106,29 +106,7 @@ function AppContent() {
   useEffect(() => {
     if (Platform.OS === 'web') {
       document.title = 'Bypolizer';
-
-      try {
-        const iconUri = Image.resolveAssetSource(require('./assets/icon_app.png')).uri;
-
-        let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-        if (!link) {
-          link = document.createElement('link');
-          link.rel = 'icon';
-          document.getElementsByTagName('head')[0].appendChild(link);
-        }
-        link.href = iconUri;
-        link.type = 'image/png';
-
-        let appleLink = document.querySelector("link[rel='apple-touch-icon']") as HTMLLinkElement;
-        if (!appleLink) {
-          appleLink = document.createElement('link');
-          appleLink.rel = 'apple-touch-icon';
-          document.getElementsByTagName('head')[0].appendChild(appleLink);
-        }
-        appleLink.href = iconUri;
-      } catch (err) {
-        console.warn('Gagal memuat dynamic favicon:', err);
-      }
+      // Favicon handling removed - not critical for demo
     }
   }, []);
 
