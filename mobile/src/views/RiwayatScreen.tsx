@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity, Image, Linking } from 'react-native';
 import { DbFeatureVector } from '../database/queries';
 import { EDU_ARTICLES, EduArticle } from '../data/educationContent';
 import { buildEpisodes, PhaseEpisode } from '../circadian/phaseClassifier';
@@ -77,12 +77,14 @@ export const RiwayatScreen: React.FC<RiwayatScreenProps> = ({ historicalVectors 
                 style={styles.eduThumbnail}
                 resizeMode="cover"
               />
-              <View style={styles.eduCardBody}>
+                <View style={styles.eduCardBody}>
                 <Text style={styles.eduCardTitle} numberOfLines={2}>{article.title}</Text>
                 <Text style={styles.eduCardExcerpt} numberOfLines={3}>{article.excerpt}</Text>
                 <View style={styles.eduCardSource}>
                   <Text style={styles.eduSourceName}>{article.sourceName}</Text>
-                  <Text style={styles.eduSourceUrl} numberOfLines={1}>{article.sourceUrl}</Text>
+                  <TouchableOpacity onPress={() => Linking.openURL(article.sourceUrl)}>
+                    <Text style={styles.eduSourceUrl} numberOfLines={1}>{article.sourceUrl}</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             </TouchableOpacity>
@@ -114,7 +116,9 @@ export const RiwayatScreen: React.FC<RiwayatScreenProps> = ({ historicalVectors 
 
             <View style={styles.eduDetailUrlRow}>
               <Text style={styles.eduDetailUrlLabel}>Sumber: </Text>
-              <Text style={styles.eduDetailUrl} numberOfLines={2}>{selectedArticle.sourceUrl}</Text>
+              <TouchableOpacity onPress={() => Linking.openURL(selectedArticle.sourceUrl)}>
+                <Text style={styles.eduDetailUrl} numberOfLines={2}>{selectedArticle.sourceUrl}</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>

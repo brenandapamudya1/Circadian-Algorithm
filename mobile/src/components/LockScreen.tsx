@@ -112,10 +112,6 @@ export const LockScreen: React.FC<LockScreenProps> = ({ isUnlocked, onUnlock }) 
             );
           })}
         </View>
-
-        <TouchableOpacity style={styles.lockBiometric} activeOpacity={0.7}>
-          <Text style={styles.lockBiometricText}>Gunakan Biometrik</Text>
-        </TouchableOpacity>
       </SafeAreaView>
     </Animated.View>
   );
