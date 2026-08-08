@@ -11,15 +11,20 @@ export const DEFAULT_USER_ID = 'user_001';
 
 /**
  * Struktur payload mentah yang dikirim oleh ESP32 (dalam bentuk JSON string).
+ * 
+ * Catatan: ESP32 (jam3.ino) saat ini belum mengirim `gyr` dan `aZcr`.
+ * Field tersebut bersifat optional dan pipeline akan menggunakan fallback
+ * jika tidak ada. Lihat next-feature.md untuk rencana upgrade ESP32.
  */
 export interface RawSensorData {
   uid: string;
   acc: [number, number, number]; // [ax, ay, az] (m/s²)
-  gyr: [number, number, number]; // [gx, gy, gz] (°/s)
+  gyr?: [number, number, number]; // [gx, gy, gz] (°/s) — optional, fallback ke acc
   bpm: number;
   rr: number[];                  // RR intervals (ms)
   aRms: number;                  // Audio RMS
-  aZcr: number;                  // Audio ZCR
+  aZcr?: number;                 // Audio ZCR — optional, fallback ke 150.0
+  bat?: number;                  // Battery percentage — optional
 }
 
 /**
@@ -408,6 +413,10 @@ class BipolyzerBleManager {
 
   /**
    * Normalisasi data mentah ESP32 ke struktur kontrak pipeline (sesuai spesifikasi ble_receiver.py).
+   * 
+   * Handle optional fields:
+   * - gyr: jika tidak ada, gunakan [0, 0, 0] (pipeline akan fallback ke accelerometer)
+   * - aZcr: jika tidak ada, gunakan 0 (pipeline akan fallback ke 150.0)
    */
   private normalizeToPipeline(sensor: RawSensorData, ts: string): PipelinePayload {
     const acc = sensor.acc || [0.0, 0.0, 0.0];
@@ -461,6 +470,7 @@ class BipolyzerBleManager {
         aRms: Number((0.01 + Math.random() * 0.05).toFixed(4)),
         // aZcr adalah proxy vocal F0, buat naik turun sesekali untuk simulasi anomali (>2.0 zscore)
         aZcr: Math.random() > 0.85 ? 250 : 120 + Math.floor(Math.random() * 30),
+        bat: 50 + Math.floor(Math.random() * 50),
       };
 
       // Siarkan ke subscriber
