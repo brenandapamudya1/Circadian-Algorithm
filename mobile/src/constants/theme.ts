@@ -47,7 +47,7 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   scrollContainer: {
-    paddingBottom: 20,
+    paddingBottom: 30,
   },
 
   // ==================== BERANDA ====================
@@ -233,7 +233,7 @@ export const styles = StyleSheet.create({
     color: '#1B5E20',
   },
   progressSection: {
-    marginBottom: 20,
+    marginBottom: 10,
   },
   progressTitle: {
     color: colors.darkPurple,
@@ -396,24 +396,28 @@ export const styles = StyleSheet.create({
 
   // ==================== BOTTOM NAV ====================
   navBar: {
-    height: 75,
+    height: 70,
     backgroundColor: colors.navBar,
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    paddingBottom: 10,
+    paddingTop: 8,
+    paddingBottom: 0,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(76, 48, 122, 0.12)',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
     elevation: 10,
   },
   navItem: {
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
+    paddingVertical: 4,
   },
   navIconImg: {
     width: 24,

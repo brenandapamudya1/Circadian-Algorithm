@@ -21,7 +21,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabPress }) =
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.navBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+    <View style={[styles.navBar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
       {tabs.map((tab) => (
         <TouchableOpacity
           key={tab.name}
