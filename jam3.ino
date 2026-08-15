@@ -59,6 +59,7 @@ BLECharacteristic *pCharacteristic = nullptr;
 bool deviceConnected = false;
 bool bleInitialized  = false;   
 bool prevDeviceConnected = false;   
+bool needsRestartAdvertising = false;
 
 // --- BUFFER & AKUMULATOR ---
 #define MAX_RR  60                
@@ -118,8 +119,8 @@ class MyServerCallbacks : public BLEServerCallbacks {
     }
     void onDisconnect(BLEServer *pServer) {
         deviceConnected = false;
-        Serial.println("[BLE] Terputus. Restart advertising...");
-        BLEDevice::startAdvertising();
+        Serial.println("[BLE] Terputus. Advertising akan direstart...");
+        needsRestartAdvertising = true;
     }
 };
 
@@ -426,6 +427,14 @@ void setup() {
 void loop() {
     unsigned long now = millis();
 
+    // --- RESTART ADVERTISING (dari callback disconnect) ---
+    if (needsRestartAdvertising && !deviceConnected) {
+        needsRestartAdvertising = false;
+        delay(100);
+        BLEDevice::startAdvertising();
+        Serial.println("[BLE] Advertising direstart.");
+    }
+
     // --- BACA MPU ---
     if (mpuDataReady) {
         mpuDataReady = false;
@@ -561,10 +570,14 @@ void loop() {
         Serial.print("Audio RMS  : "); Serial.println(avgRms, 4);
         Serial.println("======================================\n");
         
-        char blePayload[550];
+        char blePayload[600];
         snprintf(blePayload, sizeof(blePayload),
-            "{\"uid\":\"%s\",\"bat\":%d,\"acc\":[%.2f,%.2f,%.2f],\"bpm\":%.0f,\"rr\":%s,\"aRms\":%.4f}",
-            USER_ID, currentBattPercent, lastAccX, lastAccY, lastAccZ, currentBPM, rrJson, avgRms
+            "{\"uid\":\"%s\",\"bat\":%d,\"acc\":[%.2f,%.2f,%.2f],\"gyr\":[%.2f,%.2f,%.2f],\"bpm\":%.0f,\"rr\":%s,\"aRms\":%.4f,\"aZcr\":%d}",
+            USER_ID, currentBattPercent,
+            lastAccX, lastAccY, lastAccZ,
+            lastGyrX, lastGyrY, lastGyrZ,
+            currentBPM, rrJson, avgRms,
+            audioFrameCount > 0 ? (int)(audioZcrAccum / audioFrameCount) : 0
         );
 
         if (pCharacteristic != nullptr) {

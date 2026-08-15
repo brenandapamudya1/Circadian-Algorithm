@@ -47,7 +47,7 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.white,
   },
   scrollContainer: {
-    paddingBottom: 30,
+    paddingBottom: 100,
   },
 
   // ==================== BERANDA ====================
@@ -396,7 +396,7 @@ export const styles = StyleSheet.create({
 
   // ==================== BOTTOM NAV ====================
   navBar: {
-    height: 70,
+    minHeight: 70,
     backgroundColor: colors.navBar,
     flexDirection: 'row',
     justifyContent: 'space-around',

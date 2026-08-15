@@ -12,9 +12,11 @@ Payload BLE yang dikirim ESP32 saat ini:
   "uid": "user_001",
   "bat": 85,
   "acc": [0.12, -0.45, 9.78],
+  "gyr": [0.02, -0.01, 0.03],
   "bpm": 72,
   "rr": [850, 860, 845],
-  "aRms": 0.0234
+  "aRms": 0.0234,
+  "aZcr": 142
 }
 ```
 
@@ -31,8 +33,8 @@ Payload BLE yang dikirim ESP32 saat ini:
 ### Yang Belum Sinkron
 | Field | ESP32 | App | Status |
 |:---|:---:|:---:|:---|
-| `gyr` | ❌ | ✅ (optional) | App hardcode fallback |
-| `aZcr` | ❌ | ✅ (optional) | App hardcode fallback |
+| `gyr` | ✅ | ✅ (optional) | Match — ESP kirim, app fallback jika kosong |
+| `aZcr` | ✅ | ✅ (optional) | Match — ESP kirim, app fallback jika kosong |
 
 ---
 
@@ -108,9 +110,9 @@ App perlu parse field `bat` untuk menampilkan battery level di UI.
 ## Perubahan yang Diperlukan
 
 ### ESP32 (jam3.ino)
-- [ ] Tambah `gyr` ke BLE JSON payload
-- [ ] Tambah `aZcr` ke BLE JSON payload
-- [ ] Pastikan buffer size cukup (naikkan `blePayload` ke ~600 bytes)
+- [x] Tambah `gyr` ke BLE JSON payload
+- [x] Tambah `aZcr` ke BLE JSON payload
+- [x] Naikkan buffer `blePayload` ke 600 bytes
 
 ### Mobile App
 - [x] Interface `RawSensorData` sudah support optional `gyr` & `aZcr`

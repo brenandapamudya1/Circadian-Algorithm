@@ -2,16 +2,30 @@
 ble_receiver.py  —  Penerima Data Sensor Circadian via BLE
 -----------------------------------------------------------
 Menerima data dari ESP32 (atau ble_sender.py simulator).
-Format JSON yang diterima dari ESPCode_new.c:
+
+Format JSON yang diterima dari jam3.ino (firmware aktif):
 {
   "uid":  "user_001",
-  "acc":  [ax, ay, az],      <- m/s²
-  "gyr":  [gx, gy, gz],      <- °/s
+  "bat":  87,                 <- baterai %
+  "acc":  [ax, ay, az],       <- m/s²
   "bpm":  72,
-  "rr":   [832, 845, ...],   <- RR interval ms
-  "aRms": 0.043,
-  "aZcr": 128
+  "rr":   [832, 845, ...],    <- RR interval ms
+  "aRms": 0.043
 }
+Catatan: jam3.ino TIDAK mengirim "gyr" dan "aZcr" (opsional).
+
+Varian kompatibel ESPCode_new.c (firmware lama) juga tetap ditangani:
+{
+  "uid":  "user_001",
+  "acc":  [ax, ay, az],
+  "gyr":  [gx, gy, gz],       <- °/s (opsional)
+  "bpm":  72,
+  "rr":   [...],
+  "aRms": 0.043,
+  "aZcr": 128                 <- opsional
+}
+
+Epoch dikirim setiap ~30 detik oleh firmware ESP32.
 
 Setelah diterima:
   1. Inject timestamp dari jam sistem (karena ESP32 tidak kirim ts)
@@ -46,7 +60,8 @@ def normalize_to_pipeline(sensor: dict, ts: str) -> dict:
     Konversi payload ESP32 → format kontrak pipeline AGENT.md.
 
     Input  (dari ESP32):
-        uid, acc[3], gyr[3], bpm, rr[], aRms, aZcr
+        uid, acc[3], bpm, rr[], aRms
+        (opsional: bat, gyr[3], aZcr — jam3.ino tidak mengirim gyr/aZcr)
 
     Output (kontrak AGENT.md ingestion layer):
         timestamp, user_id, hrv_raw, audio_raw, imu_raw
@@ -99,17 +114,23 @@ def parse_and_print(data: bytearray):
         gyr = sensor.get("gyr", [0, 0, 0])
 
         # 3. Print data sensor
+        payload_size = len(raw_str.encode("utf-8"))
         print(f"\n{'─'*58}")
         print(f"  [EPOCH] {ts}")
         print(f"{'─'*58}")
         print(f"  UID        : {sensor.get('uid', '?')}")
+        print(f"  Battery    : {sensor.get('bat', 'N/A')} %")
+        print(f"  Payload    : {payload_size} bytes")
         print(f"  ── IMU (MPU6050) ───────────────────────────────")
         print(f"  Accel X    : {acc[0]:>+8.3f} m/s²")
         print(f"  Accel Y    : {acc[1]:>+8.3f} m/s²")
         print(f"  Accel Z    : {acc[2]:>+8.3f} m/s²")
-        print(f"  Gyro  X    : {gyr[0]:>+8.3f} °/s")
-        print(f"  Gyro  Y    : {gyr[1]:>+8.3f} °/s")
-        print(f"  Gyro  Z    : {gyr[2]:>+8.3f} °/s")
+        if "gyr" in sensor:
+            print(f"  Gyro  X    : {gyr[0]:>+8.3f} °/s")
+            print(f"  Gyro  Y    : {gyr[1]:>+8.3f} °/s")
+            print(f"  Gyro  Z    : {gyr[2]:>+8.3f} °/s")
+        else:
+            print(f"  Gyro       : N/A (tidak dikirim jam3.ino)")
         print(f"  ── HRV (MAX30100) ──────────────────────────────")
         print(f"  BPM        : {sensor.get('bpm', '?'):>8} bpm")
         print(f"  RR count   : {len(rr):>8} intervals")
@@ -118,7 +139,7 @@ def parse_and_print(data: bytearray):
         print(f"  RR raw     : {str(rr[:6])}{'...' if len(rr)>6 else ''}")
         print(f"  ── Audio (INMP441) ─────────────────────────────")
         print(f"  RMS energy : {sensor.get('aRms', '?'):>8.4f}")
-        print(f"  Zero-Cross : {sensor.get('aZcr', '?'):>8}")
+        print(f"  Zero-Cross : {sensor.get('aZcr', 'N/A'):>8}")
 
         # 4. Normalisasi ke format pipeline
         pipeline_payload = normalize_to_pipeline(sensor, ts)
@@ -144,7 +165,7 @@ async def scan_and_connect():
     """Scan BLE, connect, dan subscribe NOTIFY."""
 
     print("=" * 58)
-    print("  Circadian BLE Receiver  (ESPCode_new v2.1 format)")
+    print("  Circadian BLE Receiver  (jam3.ino format)")
     print("=" * 58)
 
     # ── STRATEGI 1: Cari by nama "Circadian" ──────────────────
@@ -180,12 +201,14 @@ async def scan_and_connect():
     # ── CONNECT & SUBSCRIBE ────────────────────────────────────
     print(f"\n[CONN] Menghubungkan ke {device.address}...")
 
-    async with BleakClient(device.address) as client:
+    async with BleakClient(device) as client:
         if not client.is_connected:
             print("[ERROR] Gagal terhubung.")
             return
 
         print(f"[CONN] ✓ Terhubung ke {device.address}")
+        print(f"[MTU]  ATT MTU negotiated: {client.mtu_size} bytes "
+              f"(max payload/notify = {client.mtu_size - 3} bytes)")
         print(f"[BLE]  Subscribe NOTIFY → {CHARACTERISTIC_UUID}")
         print(f"\n[OK]   Menerima epoch setiap ~30 detik. Ctrl+C untuk berhenti.\n")
 

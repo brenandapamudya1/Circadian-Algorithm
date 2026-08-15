@@ -360,8 +360,28 @@ class BipolyzerBleManager {
           this.handleDisconnect();
         });
 
-        await connectedDevice.discoverAllServicesAndCharacteristics();
-        this.subscribeToNotifications(connectedDevice);
+        // Request MTU besar agar payload sensor (>20 byte) bisa terkirim dalam satu notifikasi.
+        // Tanpa ini, Android menggunakan MTU default 23 byte (max payload 20 byte),
+        // yang menyebabkan notify() gagal untuk payload 150-500 byte.
+        if (Platform.OS === 'android') {
+          try {
+            const mtu = await connectedDevice.requestMTU(512);
+            console.log(`[BLE] MTU dinegosiasikan: ${mtu} bytes`);
+          } catch (mtuError) {
+            console.warn('[BLE] Gagal request MTU, menggunakan default:', mtuError);
+          }
+        }
+
+        // Discover services dan subscribe NOTIF terpisah dari connect.
+        // Jangan biarkan kegagalan discover membatalkan state koneksi.
+        try {
+          await connectedDevice.discoverAllServicesAndCharacteristics();
+          this.subscribeToNotifications(connectedDevice);
+          console.log('[BLE] Services & notifications siap.');
+        } catch (discError) {
+          console.warn('[BLE] Gagal discover services/subscribe:', discError);
+          // Koneksi tetap hidup, hanya notification yang mungkin tidak jalan.
+        }
 
       } catch (error) {
         console.error('[BLE] Gagal menghubungkan:', error);
