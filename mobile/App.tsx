@@ -54,6 +54,7 @@ function AppContent() {
     notificationService.startDailySummarySchedule(21, 0);
 
     const unsubState = bleManager.subscribeStateChange((state) => {
+      console.log(`[App] BLE state update: ${state}`);
       setBleConnectionState(state);
       if (state === 'disconnected') {
         setScannedDevices([]);

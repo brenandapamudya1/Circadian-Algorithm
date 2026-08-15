@@ -166,7 +166,9 @@ class BipolyzerBleManager {
    * Mengupdate state koneksi internal dan memicu event listener.
    */
   private setConnectionState(state: ConnectionState) {
+    const prev = this.connectionState;
     this.connectionState = state;
+    console.log(`[BLE] State: ${prev} → ${state}`);
     this.onStateChangeCallbacks.forEach((cb) => cb(state));
   }
 
@@ -352,8 +354,7 @@ class BipolyzerBleManager {
       try {
         const connectedDevice = await this.manager.connectToDevice(device.id);
         this.connectedDevice = connectedDevice;
-        this.setConnectionState('connected');
-        console.log('[BLE] Berhasil terhubung!');
+        console.log('[BLE] GATT terhubung, setup services...');
 
         connectedDevice.onDisconnected((error, d) => {
           console.log(`[BLE] Perangkat terputus: ${d.id}`, error || '');
@@ -361,8 +362,6 @@ class BipolyzerBleManager {
         });
 
         // Request MTU besar agar payload sensor (>20 byte) bisa terkirim dalam satu notifikasi.
-        // Tanpa ini, Android menggunakan MTU default 23 byte (max payload 20 byte),
-        // yang menyebabkan notify() gagal untuk payload 150-500 byte.
         if (Platform.OS === 'android') {
           try {
             const mtu = await connectedDevice.requestMTU(512);
@@ -372,16 +371,19 @@ class BipolyzerBleManager {
           }
         }
 
-        // Discover services dan subscribe NOTIF terpisah dari connect.
-        // Jangan biarkan kegagalan discover membatalkan state koneksi.
+        // Discover services dan subscribe NOTIF.
         try {
           await connectedDevice.discoverAllServicesAndCharacteristics();
           this.subscribeToNotifications(connectedDevice);
           console.log('[BLE] Services & notifications siap.');
         } catch (discError) {
           console.warn('[BLE] Gagal discover services/subscribe:', discError);
-          // Koneksi tetap hidup, hanya notification yang mungkin tidak jalan.
         }
+
+        // State 'connected' hanya disetelah semua setup berhasil.
+        // Ini mencegah handleDisconnect() overwrite state jika discover/subscribe gagal.
+        this.setConnectionState('connected');
+        console.log('[BLE] Berhasil terhubung!');
 
       } catch (error) {
         console.error('[BLE] Gagal menghubungkan:', error);
@@ -512,6 +514,8 @@ class BipolyzerBleManager {
    * Membersihkan status saat perangkat terputus atau koneksi gagal.
    */
   private handleDisconnect(): void {
+    if (this.connectionState === 'disconnected') return;
+
     if (Platform.OS === 'web') {
       this.stopMockDataStream();
     }

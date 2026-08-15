@@ -169,6 +169,32 @@ export async function cleanupOldFeatureVectors(daysLimit: number = 90): Promise<
   return result.changes;
 }
 
+// ── 2b. FEATURE VECTORS — DATA STORAGE HELPERS ─────────────────────────────
+
+export async function getFeatureVectorCount(): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(*) as count FROM feature_vectors;'
+  );
+  return result?.count ?? 0;
+}
+
+export async function getOldestFeatureVector(): Promise<DbFeatureVector | null> {
+  const db = await getDb();
+  if (!db) return null;
+  return db.getFirstAsync<DbFeatureVector>(
+    'SELECT * FROM feature_vectors ORDER BY timestamp ASC LIMIT 1;'
+  );
+}
+
+export async function clearAllFeatureVectors(): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const result = await db.runAsync('DELETE FROM feature_vectors;');
+  return result.changes;
+}
+
 // ── 3. MOOD LOGS QUERIES ────────────────────────────────────────────────────
 
 export async function insertMoodLog(loggedDate: string, moodScore: number, note: string | null): Promise<void> {

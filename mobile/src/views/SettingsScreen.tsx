@@ -7,6 +7,9 @@ import {
   insertEmergencyContact,
   deleteEmergencyContact,
   DbEmergencyContact,
+  getFeatureVectorCount,
+  getOldestFeatureVector,
+  clearAllFeatureVectors,
 } from '../database/queries';
 import { styles } from '../constants/theme';
 
@@ -59,9 +62,48 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
   const [newContactPhone, setNewContactPhone] = useState('');
   const [selectedContact, setSelectedContact] = useState<DbEmergencyContact | null>(null);
 
+  const [dataCount, setDataCount] = useState(0);
+  const [oldestData, setOldestData] = useState<string | null>(null);
+
   useEffect(() => {
     loadEmergencyContacts();
+    loadDataStorageInfo();
   }, []);
+
+  const loadDataStorageInfo = async () => {
+    try {
+      const count = await getFeatureVectorCount();
+      setDataCount(count);
+      const oldest = await getOldestFeatureVector();
+      if (oldest) {
+        const d = new Date(oldest.timestamp);
+        setOldestData(d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }));
+      } else {
+        setOldestData(null);
+      }
+    } catch (err) {
+      console.warn('Gagal memuat info storage:', err);
+    }
+  };
+
+  const handleClearAllData = () => {
+    Alert.alert(
+      'Hapus Semua Data',
+      `Hapus ${dataCount} epoch data sensor? Tindakan ini tidak dapat dibatalkan.`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Hapus',
+          style: 'destructive',
+          onPress: async () => {
+            const deleted = await clearAllFeatureVectors();
+            console.log(`[Settings] Dihapus ${deleted} epoch dari SQLite.`);
+            await loadDataStorageInfo();
+          },
+        },
+      ]
+    );
+  };
 
   const loadEmergencyContacts = async () => {
     try {
@@ -204,6 +246,43 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
           <Text style={styles.settingRowIcon}>
             {bleConnectionState === 'connected' ? '✓' : '⑂'}
           </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.settingSection}>
+        <Text style={styles.settingSectionLabel}>PENYIMPANAN DATA</Text>
+
+        <View style={styles.settingRow}>
+          <View style={styles.settingRowLeft}>
+            <Text style={styles.settingRowTitle}>Total Epoch Tersimpan</Text>
+            <Text style={styles.settingRowSub}>
+              {dataCount > 0 ? `${dataCount} epoch` : 'Belum ada data'}
+            </Text>
+          </View>
+        </View>
+
+        {oldestData && (
+          <View style={styles.settingRow}>
+            <View style={styles.settingRowLeft}>
+              <Text style={styles.settingRowTitle}>Data Tertua</Text>
+              <Text style={styles.settingRowSub}>{oldestData}</Text>
+            </View>
+          </View>
+        )}
+
+        <TouchableOpacity
+          style={[styles.settingRow, styles.settingRowNoBorder]}
+          onPress={handleClearAllData}
+          disabled={dataCount === 0}
+        >
+          <View style={styles.settingRowLeft}>
+            <Text style={[styles.settingRowTitle, dataCount > 0 && { color: '#E53935' }]}>
+              Hapus Semua Data
+            </Text>
+            <Text style={styles.settingRowSub}>
+              {dataCount > 0 ? 'Tidak dapat dibatalkan' : 'Tidak ada data untuk dihapus'}
+            </Text>
+          </View>
         </TouchableOpacity>
       </View>
 
