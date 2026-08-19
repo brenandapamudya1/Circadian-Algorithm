@@ -13,6 +13,7 @@ export interface PhaseEpisode {
   epochCount: number;
   avgHrv: number;
   avgVocal: number;
+  epochs: DbFeatureVector[];
 }
 
 function classifyVector(fv: DbFeatureVector): PhaseLabel {
@@ -149,5 +150,6 @@ function buildEpisode(
     epochCount: epochs.length,
     avgHrv,
     avgVocal,
+    epochs,
   };
 }

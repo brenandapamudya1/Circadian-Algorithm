@@ -1160,6 +1160,114 @@ export const styles = StyleSheet.create({
     fontSize: 15,
   },
 
+  // ==================== EPOCH DETAIL MODAL ====================
+  epochModalOverlay: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end' as const,
+    zIndex: 9999,
+  },
+  epochModalContent: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 30,
+    width: '100%' as const,
+    maxHeight: '85%' as const,
+  },
+  epochModalHeader: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8DFF5',
+  },
+  epochModalBack: {
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+  },
+  epochModalBackText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: colors.accent,
+  },
+  epochModalTitle: {
+    fontSize: 16,
+    fontWeight: '700' as const,
+    color: colors.darkPurple,
+    flex: 1,
+    textAlign: 'center' as const,
+  },
+  epochModalSpacer: {
+    width: 60,
+  },
+  epochModalList: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  epochListItem: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0EAF8',
+  },
+  epochListItemTime: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: colors.darkPurple,
+    marginBottom: 3,
+  },
+  epochListItemSub: {
+    fontSize: 12,
+    color: colors.textLight,
+    fontWeight: '500' as const,
+  },
+  epochListItemArrow: {
+    fontSize: 18,
+    color: colors.textLight,
+  },
+  epochModalTable: {
+    paddingHorizontal: 20,
+    paddingTop: 8,
+  },
+  epochModalTableRow: {
+    flexDirection: 'row' as const,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0EAF8',
+  },
+  epochModalTableRowAlt: {
+    backgroundColor: '#FAFAFE',
+  },
+  epochModalTableLabel: {
+    width: 130,
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: colors.textLight,
+  },
+  epochModalTableValue: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500' as const,
+    color: colors.darkPurple,
+  },
+  epochModalSectionHeader: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: colors.accent,
+    letterSpacing: 0.5,
+    paddingTop: 16,
+    paddingBottom: 6,
+    paddingHorizontal: 20,
+    backgroundColor: '#FAFAFE',
+  },
+
   // ==================== EMERGENCY CONTACTS ====================
   emergencyContactRow: {
     flexDirection: 'row',

@@ -4,6 +4,7 @@ import { BleManager, Device, Subscription } from 'react-native-ble-plx';
 // ── CONFIGURATIONS (Sesuai dengan ESPCode_new.c) ─────────────────────────────
 export const SERVICE_UUID = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
 export const CHARACTERISTIC_UUID = 'beb5483e-36e1-4688-b7f5-ea07361b26a8';
+export const TIME_CHAR_UUID = 'd4a1b2c3-e5f6-7890-abcd-ef1234567890';
 export const DEVICE_NAME = 'Circadian';
 export const DEFAULT_USER_ID = 'user_001';
 
@@ -376,6 +377,9 @@ class BipolyzerBleManager {
           await connectedDevice.discoverAllServicesAndCharacteristics();
           this.subscribeToNotifications(connectedDevice);
           console.log('[BLE] Services & notifications siap.');
+
+          // Time sync: kirim timestamp phone ke ESP
+          await this.syncTimeToESP(connectedDevice);
         } catch (discError) {
           console.warn('[BLE] Gagal discover services/subscribe:', discError);
         }
@@ -507,6 +511,24 @@ class BipolyzerBleManager {
     if (this.mockStreamInterval) {
       clearInterval(this.mockStreamInterval);
       this.mockStreamInterval = null;
+    }
+  }
+
+  /**
+   * Mengirim timestamp phone ke ESP32 untuk sinkronisasi jam OLED.
+   */
+  private async syncTimeToESP(device: Device): Promise<void> {
+    try {
+      const epochMs = Date.now();
+      const base64Time = btoa(String(epochMs));
+      await device.writeCharacteristicWithResponseForService(
+        SERVICE_UUID,
+        TIME_CHAR_UUID,
+        base64Time,
+      );
+      console.log(`[BLE] Time sync terkirim: ${epochMs}`);
+    } catch (error) {
+      console.warn('[BLE] Gagal kirim time sync:', error);
     }
   }
 

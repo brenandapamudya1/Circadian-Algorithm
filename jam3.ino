@@ -1,4 +1,5 @@
 #include <Wire.h>
+#include <time.h>
 #include "MAX30100_PulseOximeter.h"
 #include <driver/i2s.h>
 #include <math.h>                  
@@ -36,6 +37,7 @@
 // --- BLE CONFIG ---
 #define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+#define TIME_CHAR_UUID      "d4a1b2c3-e5f6-7890-abcd-ef1234567890"
 
 // --- BATERAI CONFIG ---
 #define BATT_DIVIDER_RATIO 2.0f   
@@ -56,6 +58,7 @@ U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
 // === VARIABEL BLE ===
 BLECharacteristic *pCharacteristic = nullptr;
+BLECharacteristic *pTimeCharacteristic = nullptr;
 bool deviceConnected = false;
 bool bleInitialized  = false;   
 bool prevDeviceConnected = false;   
@@ -121,6 +124,26 @@ class MyServerCallbacks : public BLEServerCallbacks {
         deviceConnected = false;
         Serial.println("[BLE] Terputus. Advertising akan direstart...");
         needsRestartAdvertising = true;
+    }
+};
+
+// === CALLBACK WRITE TIME ===
+class TimeSyncCallbacks : public BLECharacteristicCallbacks {
+    void onWrite(BLECharacteristic *pChar) {
+        String value = pChar->getValue();
+        if (value.length() > 0) {
+            // Parse epoch millis dari phone
+            unsigned long ts = strtoul(value.c_str(), NULL, 10);
+            if (ts > 0) {
+                time_t phoneTime = ts / 1000;
+                struct tm *tm = localtime(&phoneTime);
+                setClockReference(tm->tm_hour, tm->tm_min);
+                Serial.print("[TIME] Sync dari phone: ");
+                Serial.print(tm->tm_hour);
+                Serial.print(":");
+                Serial.println(tm->tm_min);
+            }
+        }
     }
 };
 
@@ -402,6 +425,11 @@ void setup() {
     );
     pCharacteristic->addDescriptor(new BLE2902());
     pCharacteristic->setValue("Menunggu epoch pertama...");
+
+    pTimeCharacteristic = pService->createCharacteristic(
+        TIME_CHAR_UUID, BLECharacteristic::PROPERTY_WRITE
+    );
+    pTimeCharacteristic->setCallbacks(new TimeSyncCallbacks());
 
     pService->start();
     
