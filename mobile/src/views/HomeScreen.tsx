@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { PipelineResult } from '../circadian/pipeline';
 import { ConnectionState } from '../services/bleManager';
+import { MetricCard } from '../components/MetricCard';
 import { AlertPanel } from '../components/AlertPanel';
 import { DailyReminderCard } from '../components/DailyReminderCard';
 import { styles } from '../constants/theme';
@@ -59,6 +60,29 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ latestResult, bleConnect
               {latestResult ? latestResult.window_name : '—'}
             </Text>
           </View>
+        </View>
+
+        <View style={styles.grid}>
+          <MetricCard
+            icon={require('../../assets/ICON_HOMEPAGE/heart_icon.png')}
+            label="HRV (RMSSD)"
+            value={latestResult ? `${latestResult.hrv_rmssd.toFixed(0)} ms` : '—'}
+          />
+          <MetricCard
+            icon={require('../../assets/ICON_HOMEPAGE/mic_icon.png')}
+            label="Biomarker Vokal"
+            value={latestResult ? `${latestResult.vocal_f0.toFixed(0)}` : '—'}
+          />
+          <MetricCard
+            icon={require('../../assets/ICON_HOMEPAGE/moon_icon.png')}
+            label="Dwell Time"
+            value={latestResult ? `${latestResult.imu_dwell_min.toFixed(1)} m` : '—'}
+          />
+          <MetricCard
+            icon={require('../../assets/ICON_HOMEPAGE/walking_icon.png')}
+            label="Status Alat"
+            value={bleConnectionState === 'connected' ? 'Terhubung' : 'Terputus'}
+          />
         </View>
 
         <AlertPanel
