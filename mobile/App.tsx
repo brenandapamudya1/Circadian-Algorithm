@@ -33,6 +33,7 @@ function AppContent() {
   const [bleConnectionState, setBleConnectionState] = useState<ConnectionState>('disconnected');
   const [scannedDevices, setScannedDevices] = useState<Device[]>([]);
   const [showBleModal, setShowBleModal] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [latestResult, setLatestResult] = useState<PipelineResult | null>(null);
   const [historicalVectors, setHistoricalVectors] = useState<DbFeatureVector[]>([]);
 
@@ -113,7 +114,6 @@ function AppContent() {
 
   const bgStyle =
     activeTab === 'Tren' ? styles.bgTren
-    : activeTab === 'Pengaturan' ? styles.bgPengaturan
     : activeTab === 'Riwayat' ? styles.bgRiwayat
     : styles.bgBeranda;
 
@@ -130,18 +130,12 @@ function AppContent() {
               <HomeScreen
                 latestResult={latestResult}
                 bleConnectionState={bleConnectionState}
+                onOpenSettings={() => setShowSettings(true)}
               />
             )}
 
             {activeTab === 'Tren' && (
               <TrenScreen historicalVectors={historicalVectors} />
-            )}
-
-            {activeTab === 'Pengaturan' && (
-              <SettingsScreen
-                bleConnectionState={bleConnectionState}
-                onOpenBleScanner={openBleScanner}
-              />
             )}
 
             {activeTab === 'Riwayat' && (
@@ -163,6 +157,14 @@ function AppContent() {
         onStopScan={() => bleManager.stopScan()}
         onClose={() => setShowBleModal(false)}
       />
+
+      {showSettings && (
+        <SettingsScreen
+          bleConnectionState={bleConnectionState}
+          onOpenBleScanner={openBleScanner}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
 
       {!isUnlocked && (
         <LockScreen isUnlocked={isUnlocked} onUnlock={() => setIsUnlocked(true)} />

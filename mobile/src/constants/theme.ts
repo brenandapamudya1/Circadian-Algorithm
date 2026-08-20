@@ -58,7 +58,8 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
   },
   headerTitle: {
     color: colors.white,
@@ -72,6 +73,18 @@ export const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '400',
     textAlign: 'center',
+  },
+  headerSettingsBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+  },
+  headerSettingsIcon: {
+    fontSize: 20,
+    color: colors.white,
   },
   content: {
     paddingHorizontal: 20,
@@ -564,6 +577,78 @@ export const styles = StyleSheet.create({
   },
   toggleThumbOff: {
     alignSelf: 'flex-start',
+  },
+
+  // ==================== DAILY REMINDER CARD ====================
+  dailyReminderCard: {
+    backgroundColor: colors.veryLightPurple,
+    borderRadius: 18,
+    padding: 16,
+    marginTop: 16,
+  },
+  dailyReminderHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
+    marginBottom: 12,
+  },
+  dailyReminderTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: colors.darkPurple,
+  },
+  dailyReminderSettings: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: colors.accent,
+  },
+  dailyReminderEmpty: {
+    fontSize: 13,
+    color: colors.textLight,
+    fontStyle: 'italic' as const,
+  },
+  dailyReminderRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(76, 48, 122, 0.1)',
+  },
+  dailyReminderInfo: {
+    flex: 1,
+  },
+  dailyReminderLabel: {
+    fontSize: 13,
+    fontWeight: '600' as const,
+    color: colors.darkPurple,
+    marginBottom: 2,
+  },
+  dailyReminderTime: {
+    fontSize: 11,
+    color: colors.textLight,
+  },
+
+  // ==================== SETTINGS OVERLAY ====================
+  settingsOverlay: {
+    position: 'absolute' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.primary,
+    zIndex: 9998,
+  },
+  settingsBackBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    marginBottom: 8,
+    alignSelf: 'flex-start' as const,
+  },
+  settingsBackText: {
+    fontSize: 14,
+    fontWeight: '600' as const,
+    color: colors.white,
   },
 
   // ==================== RIWAYAT ====================

@@ -24,6 +24,7 @@ interface Reminder {
 interface SettingsScreenProps {
   bleConnectionState: ConnectionState;
   onOpenBleScanner: () => void;
+  onClose: () => void;
 }
 
 const DEFAULT_REMINDERS: Reminder[] = [
@@ -47,7 +48,7 @@ function getInitials(name: string): string {
   return name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 }
 
-export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionState, onOpenBleScanner }) => {
+export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionState, onOpenBleScanner, onClose }) => {
   const [notifFaseOn, setNotifFaseOn] = useState(true);
   const [notifHarianOn, setNotifHarianOn] = useState(false);
   const [reminders, setReminders] = useState<Reminder[]>(DEFAULT_REMINDERS);
@@ -220,8 +221,12 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
   };
 
   return (
-    <View style={styles.pengaturanContainer}>
-      <Text style={styles.pengaturanTitle}>Pengaturan</Text>
+    <View style={styles.settingsOverlay}>
+      <View style={styles.pengaturanContainer}>
+        <TouchableOpacity style={styles.settingsBackBtn} onPress={onClose}>
+          <Text style={styles.settingsBackText}>← Kembali</Text>
+        </TouchableOpacity>
+        <Text style={styles.pengaturanTitle}>Pengaturan</Text>
 
       <View style={styles.profileCard}>
         <View style={styles.avatarCircle}>
@@ -534,6 +539,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
           </View>
         </TouchableOpacity>
       )}
+      </View>
     </View>
   );
 };

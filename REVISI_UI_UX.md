@@ -25,22 +25,22 @@
 ## PHASE 0: QUICK FIXES (Prioritas Tinggi)
 
 ### P0-1: Settings Floating di Tiap Halaman
-- [ ] Hapus tab "Pengaturan" dari BottomNav (jadikan 3 tab)
-- [ ] Tambah icon gear di header semua screen (Beranda, Tren, Riwayat)
-- [ ] Tap icon → navigate ke SettingsScreen
-- [ ] Update App.tsx navigation state
+- [x] Hapus tab "Pengaturan" dari BottomNav (jadikan 3 tab)
+- [x] Tambah icon gear di header semua screen (Beranda, Tren, Riwayat)
+- [x] Tap icon → navigate ke SettingsScreen
+- [x] Update App.tsx navigation state
 
 **Files:** `BottomNav.tsx`, `App.tsx`, `HomeScreen.tsx`, `TrenScreen.tsx`, `RiwayatScreen.tsx`
 
 ---
 
 ### P0-2: Daily Reminder di HomeScreen
-- [ ] Buat component `DailyReminderCard`
-- [ ] Tampilkan jadwal obat/hari ini dari database
-- [ ] Toggle on/off per reminder langsung dari Home
-- [ ] SettingsScreen: sisa CRUD (tambah/hapus/edit jadwal) saja
+- [x] Buat component `DailyReminderCard`
+- [x] Tampilkan jadwal obat/hari ini dari database
+- [x] Toggle on/off per reminder langsung dari Home
+- [x] SettingsScreen: sisa CRUD (tambah/hapus/edit jadwal) saja
 
-**Files:** `HomeScreen.tsx`, `SettingsScreen.tsx`
+**Files:** `HomeScreen.tsx`, `SettingsScreen.tsx`, `DailyReminderCard.tsx`
 
 ---
 
@@ -186,6 +186,8 @@
 | Tanggal | Aktivitas | Status |
 |---|---|---|
 | 21 Aug 2026 | Buat planning document | DONE |
+| 21 Aug 2026 | P0-1: Settings floating (3 tab + icon gear) | DONE |
+| 21 Aug 2026 | P0-2: Daily reminder di HomeScreen | DONE |
 | | | |
 | | | |
 

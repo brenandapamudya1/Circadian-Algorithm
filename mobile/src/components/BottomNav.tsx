@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { styles } from '../constants/theme';
 
-export type TabName = 'Beranda' | 'Tren' | 'Pengaturan' | 'Riwayat';
+export type TabName = 'Beranda' | 'Tren' | 'Riwayat';
 
 interface BottomNavProps {
   activeTab: TabName;
@@ -13,7 +13,6 @@ interface BottomNavProps {
 const tabs: { name: TabName; icon: any; label: string }[] = [
   { name: 'Beranda', icon: require('../../assets/ICON_HOMEPAGE/home_icon.png'), label: 'Beranda' },
   { name: 'Tren', icon: require('../../assets/ICON_HOMEPAGE/tren_icon.png'), label: 'Tren' },
-  { name: 'Pengaturan', icon: require('../../assets/ICON_HOMEPAGE/settings_icon.png'), label: 'Pengaturan' },
   { name: 'Riwayat', icon: require('../../assets/ICON_HOMEPAGE/riwayat_icon.png'), label: 'Riwayat' },
 ];
 
