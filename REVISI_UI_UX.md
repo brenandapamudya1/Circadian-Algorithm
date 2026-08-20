@@ -45,11 +45,11 @@
 ---
 
 ### P0-3: Chart Weekly & Monthly
-- [ ] Hapus progress rings (M,S,S,R,K,J,S) dari HomeScreen
-- [ ] TrenScreen: buat 2 tab "Mingguan" / "Bulanan"
-- [ ] Mingguan: chart line 7 titik (Sen-Sab) = rata-rata fase per hari
-- [ ] Bulanan: chart line 4 minggu (M1-M4) = rata-rata per minggu
-- [ ] Warna chart: hijau=stabil, kuning=manik, merah=depresi
+- [x] Hapus progress rings (M,S,S,R,K,J,S) dari HomeScreen
+- [x] TrenScreen: buat 2 tab "Mingguan" / "Bulanan"
+- [x] Mingguan: chart line 7 titik (Sen-Sab) = rata-rata fase per hari
+- [x] Bulanan: chart line 4 minggu (M1-M4) = rata-rata per minggu
+- [x] Warna chart: hijau=stabil, kuning=manik, merah=depresi
 
 **Files:** `TrenScreen.tsx`, `HomeScreen.tsx`
 
@@ -188,6 +188,7 @@
 | 21 Aug 2026 | Buat planning document | DONE |
 | 21 Aug 2026 | P0-1: Settings floating (3 tab + icon gear) | DONE |
 | 21 Aug 2026 | P0-2: Daily reminder di HomeScreen | DONE |
+| 21 Aug 2026 | P0-3: Chart weekly & monthly (fase stabil) | DONE |
 | | | |
 | | | |
 

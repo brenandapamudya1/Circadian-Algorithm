@@ -407,6 +407,29 @@ export const styles = StyleSheet.create({
     color: colors.textLight,
   },
 
+  // ==================== LEGEND ====================
+  legendContainer: {
+    flexDirection: 'row' as const,
+    justifyContent: 'center' as const,
+    gap: 20,
+    marginBottom: 20,
+  },
+  legendItem: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 6,
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  legendText: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: colors.textMedium,
+  },
+
   // ==================== BOTTOM NAV ====================
   navBar: {
     minHeight: 70,
