@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Image, Linking, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Image, Linking, Alert, ScrollView } from 'react-native';
 import { ConnectionState } from '../services/bleManager';
 import { notificationService } from '../services/notificationService';
 import {
@@ -222,11 +222,15 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
 
   return (
     <View style={styles.settingsOverlay}>
-      <View style={styles.pengaturanContainer}>
-        <TouchableOpacity style={styles.settingsBackBtn} onPress={onClose}>
-          <Text style={styles.settingsBackText}>← Kembali</Text>
-        </TouchableOpacity>
-        <Text style={styles.pengaturanTitle}>Pengaturan</Text>
+      <ScrollView
+        contentContainerStyle={styles.settingsScrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.pengaturanContainer}>
+          <TouchableOpacity style={styles.settingsBackBtn} onPress={onClose}>
+            <Text style={styles.settingsBackText}>← Kembali</Text>
+          </TouchableOpacity>
+          <Text style={styles.pengaturanTitle}>Pengaturan</Text>
 
       <View style={styles.profileCard}>
         <View style={styles.avatarCircle}>
@@ -539,7 +543,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
           </View>
         </TouchableOpacity>
       )}
-      </View>
+        </View>
+      </ScrollView>
     </View>
   );
 };

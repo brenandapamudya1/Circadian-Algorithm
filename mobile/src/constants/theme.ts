@@ -650,6 +650,9 @@ export const styles = StyleSheet.create({
     fontWeight: '600' as const,
     color: colors.white,
   },
+  settingsScrollContent: {
+    flexGrow: 1,
+  },
 
   // ==================== RIWAYAT ====================
   riwayatContainer: {
