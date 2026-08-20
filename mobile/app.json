@@ -4,7 +4,7 @@
     "slug": "bypolizer",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon_app.png",
+    "icon": "./assets/larger_icon_app.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true
@@ -13,12 +13,12 @@
       "package": "com.bipolyzer.circadian",
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
-        "foregroundImage": "./assets/icon_app.png"
+        "foregroundImage": "./assets/larger_icon_app.png"
       },
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/icon_app.png"
+      "favicon": "./assets/larger_icon_app.png"
     },
     "extra": {
       "eas": {
