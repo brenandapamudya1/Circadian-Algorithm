@@ -56,9 +56,9 @@
 ---
 
 ### P0-4: Sembunyikan Chart Vocal
-- [ ] Hapus chart "Biomarker Vokal" dari TrenScreen
-- [ ] Data vocal tetap disimpan di SQLite (untuk export dokter)
-- [ ] Sembunyikan metric card vocal dari HomeScreen
+- [x] Hapus chart "Biomarker Vokal" dari TrenScreen
+- [x] Data vocal tetap disimpan di SQLite (untuk export dokter)
+- [x] Sembunyikan metric card vocal dari HomeScreen
 
 **Files:** `TrenScreen.tsx`, `HomeScreen.tsx`
 
@@ -189,6 +189,7 @@
 | 21 Aug 2026 | P0-1: Settings floating (3 tab + icon gear) | DONE |
 | 21 Aug 2026 | P0-2: Daily reminder di HomeScreen | DONE |
 | 21 Aug 2026 | P0-3: Chart weekly & monthly (fase stabil) | DONE |
+| 21 Aug 2026 | P0-4: Sembunyikan chart vocal | DONE |
 | | | |
 | | | |
 
