@@ -65,22 +65,22 @@
 ---
 
 ### P0-5: Simplifikasi HomeScreen
-- [ ] Tampilkan: Fase saat ini + Jadwal obat hari ini + Mood tracker
-- [ ] Hapus metric cards teknis (HRV value, Vocal value, Dwell time)
-- [ ] Alert panel tetap ada (anomaly/gated/normal)
+- [x] Tampilkan: Fase saat ini + Jadwal obat hari ini + Mood tracker
+- [x] Hapus metric cards teknis (HRV value, Vocal value, Dwell time)
+- [x] Alert panel tetap ada (anomaly/gated/normal)
 
 **Files:** `HomeScreen.tsx`
 
 ---
 
 ### P0-6: RS Jiwa & Suicide Hotline
-- [ ] Ganti section "KONTAK DARURAT" jadi "BANTUAN DARURAT"
-- [ ] Tambah hotline resmi:
+- [x] Ganti section "KONTAK DARURAT" jadi "BANTUAN DARURAT"
+- [x] Tambah hotline resmi:
   - Kemenkes Crisis Center: 119 (ext 8)
   - Hotline Jiwa Kemenkes: 021-500-567
   - Yayasan Pulih: 021-565-5011
-- [ ] Tombol "RS Jiwa Terdekat" → buka Google Maps search
-- [ ] Kontak personal tetap bisa ditambah (keluarga)
+- [x] Tombol "RS Jiwa Terdekat" → buka Google Maps search
+- [x] Kontak personal tetap bisa ditambah (keluarga)
 
 **Files:** `SettingsScreen.tsx`
 
@@ -190,7 +190,9 @@
 | 21 Aug 2026 | P0-2: Daily reminder di HomeScreen | DONE |
 | 21 Aug 2026 | P0-3: Chart weekly & monthly (fase stabil) | DONE |
 | 21 Aug 2026 | P0-4: Sembunyikan chart vocal | DONE |
-| | | |
+| 21 Aug 2026 | P0-5: Simplifikasi HomeScreen | DONE |
+| 21 Aug 2026 | P0-6: RS Jiwa & Suicide Hotline | DONE |
+| | **Phase 0 SELESAI** | |
 | | | |
 
 ---
