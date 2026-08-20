@@ -1,5 +1,7 @@
 # Next Feature: ESP32 Payload Upgrade
 
+> **Update 21 Aug 2026:** Lihat juga `REVISI_UI_UX.md` untuk rencana revisi UI/UX berdasarkan feedback dokter.
+
 Dokumen ini mencatat rencana pengembangan berikutnya untuk sinkronisasi penuh antara ESP32 dan Mobile App.
 
 ---
