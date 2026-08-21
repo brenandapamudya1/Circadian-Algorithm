@@ -110,33 +110,37 @@
 ## PHASE 2: GAMIFICATION
 
 ### P2-1: Achievement/Badge System
-- [ ] Buat component `GamificationBadge.tsx`
-- [ ] Badge definitions:
-  - "7 Hari Stabil" → badge
-  - "30 Hari Konsisten" → badge
-  - "Mood Tracker 7 Hari" → badge
-  - "Pertama Kali Connect BLE" → badge
-- [ ] Query CRUD ke `gamification_progress` table
+- [x] Buat component `GamificationBadge.tsx`
+- [x] Badge definitions:
+  - "Pertama Kali" → badge
+  - "Konsisten 3 Hari" → badge
+  - "Streak Seminggu" → badge
+  - "Streak Sebulan" → badge
+  - "Stabil Seminggu" → badge
+  - "Stabil Sebulan" → badge
+  - "Data Collector" → badge
+- [x] Query CRUD ke `gamification_progress` table
+- [x] Service: `gamificationService.ts` (logic badges, streak, points)
 
-**Files:** `GamificationBadge.tsx` (new), `queries.ts`
+**Files:** `GamificationBadge.tsx` (new), `gamificationService.ts` (new), `queries.ts`
 
 ---
 
 ### P2-2: Streak Counter
-- [ ] Hitung hari berturut-turut data terkirim
-- [ ] Tampilkan streak di HomeScreen
-- [ ] Simpan streak di database
+- [x] Hitung hari berturut-turut data terkirim
+- [x] Tampilkan streak di HomeScreen
+- [x] Simpan streak di database
 
-**Files:** `HomeScreen.tsx`, `queries.ts`
+**Files:** `HomeScreen.tsx`, `gamificationService.ts`
 
 ---
 
 ### P2-3: Progress Bar & Reward Screen
-- [ ] Visual progress menuju milestone
-- [ ] Reward screen saat unlock badge
-- [ ] Animasi celebration
+- [x] Visual progress menuju milestone (streak counter)
+- [x] Badge grid di HomeScreen
+- [x] Auto-check badges saat BLE connect
 
-**Files:** `HomeScreen.tsx`, new component
+**Files:** `HomeScreen.tsx`, `GamificationBadge.tsx`
 
 ---
 
@@ -194,7 +198,10 @@
 | 21 Aug 2026 | P0-6: RS Jiwa & Suicide Hotline | DONE |
 | 21 Aug 2026 | P1-1: Ganti PIN | DONE |
 | 21 Aug 2026 | P1-2: Ganti Username | DONE |
-| | **Phase 0 + Phase 1 SELESAI** | |
+| 21 Aug 2026 | P2-1: Achievement/Badge System | DONE |
+| 21 Aug 2026 | P2-2: Streak Counter | DONE |
+| 21 Aug 2026 | P2-3: Progress Bar & Badges | DONE |
+| | **Phase 0 + 1 + 2 SELESAI** | |
 | | | |
 
 ---

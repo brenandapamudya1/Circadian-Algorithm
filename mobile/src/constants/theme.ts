@@ -678,6 +678,84 @@ export const styles = StyleSheet.create({
     flexGrow: 1,
   },
 
+  // ==================== GAMIFICATION ====================
+  streakContainer: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: colors.veryLightPurple,
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 16,
+  },
+  streakIcon: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+  streakInfo: {
+    flex: 1,
+  },
+  streakValue: {
+    fontSize: 28,
+    fontWeight: '800' as const,
+    color: colors.darkPurple,
+  },
+  streakLabel: {
+    fontSize: 12,
+    fontWeight: '600' as const,
+    color: colors.textLight,
+  },
+  badgeSection: {
+    marginTop: 20,
+  },
+  badgeSectionTitle: {
+    fontSize: 14,
+    fontWeight: '700' as const,
+    color: colors.darkPurple,
+    marginBottom: 12,
+  },
+  badgeGrid: {
+    flexDirection: 'row' as const,
+    flexWrap: 'wrap' as const,
+    gap: 10,
+  },
+  badgeCard: {
+    width: '31%' as const,
+    backgroundColor: colors.veryLightPurple,
+    borderRadius: 14,
+    padding: 12,
+    alignItems: 'center' as const,
+  },
+  badgeCardLocked: {
+    backgroundColor: '#F0EAF8',
+    opacity: 0.6,
+  },
+  badgeIcon: {
+    fontSize: 28,
+    marginBottom: 6,
+  },
+  badgeIconLocked: {
+    fontSize: 24,
+  },
+  badgeName: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: colors.darkPurple,
+    textAlign: 'center' as const,
+    marginBottom: 2,
+  },
+  badgeNameLocked: {
+    color: colors.textLight,
+  },
+  badgeDesc: {
+    fontSize: 9,
+    color: colors.textLight,
+    textAlign: 'center' as const,
+    lineHeight: 12,
+  },
+  badgeDescLocked: {
+    color: '#C0B8CC',
+  },
+
   // ==================== RIWAYAT ====================
   riwayatContainer: {
     paddingTop: 50,
