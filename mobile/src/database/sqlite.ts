@@ -120,6 +120,12 @@ export async function initDatabase(): Promise<void> {
           phone TEXT NOT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS user_settings (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
     `);
 
     console.log('[SQLite] Tabel berhasil diinisialisasi.');
@@ -159,6 +165,22 @@ export async function initDatabase(): Promise<void> {
          VALUES ('local_user', 0, 0, NULL, '[]');`
       );
       console.log('[SQLite] Seeding gamifikasi selesai.');
+    }
+
+    // 4. Seed default user settings (PIN & username)
+    const settingsResult = await db.getFirstAsync<{ count: number }>(
+      'SELECT COUNT(*) as count FROM user_settings;'
+    );
+
+    if (settingsResult && settingsResult.count === 0) {
+      console.log('[SQLite] Melakukan seeding data awal untuk user_settings...');
+      await db.runAsync(
+        `INSERT INTO user_settings (key, value) VALUES ('pin', '1234');`
+      );
+      await db.runAsync(
+        `INSERT INTO user_settings (key, value) VALUES ('username', 'User');`
+      );
+      console.log('[SQLite] Seeding user_settings selesai.');
     }
 
   } catch (error) {

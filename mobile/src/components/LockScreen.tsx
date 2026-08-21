@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Image, Animated, SafeAreaView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { getPin } from '../database/queries';
 import { styles } from '../constants/theme';
 
 interface LockScreenProps {
@@ -8,13 +9,21 @@ interface LockScreenProps {
   onUnlock: () => void;
 }
 
-const DEMO_PIN = '1234';
-
 export const LockScreen: React.FC<LockScreenProps> = ({ isUnlocked, onUnlock }) => {
   const lockOpacity = useRef(new Animated.Value(1)).current;
   const [pinVerified, setPinVerified] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
+  const [correctPin, setCorrectPin] = useState('1234');
+
+  useEffect(() => {
+    loadPin();
+  }, []);
+
+  const loadPin = async () => {
+    const pin = await getPin();
+    setCorrectPin(pin);
+  };
 
   const handlePinPress = (digit: string) => {
     if (pinInput.length >= 4) return;
@@ -23,7 +32,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ isUnlocked, onUnlock }) 
     setPinError(false);
 
     if (newPin.length === 4) {
-      if (newPin === DEMO_PIN) {
+      if (newPin === correctPin) {
         setPinVerified(true);
         setTimeout(() => {
           Animated.timing(lockOpacity, {

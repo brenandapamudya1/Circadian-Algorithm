@@ -367,3 +367,43 @@ export async function deleteEmergencyContact(contactId: string): Promise<void> {
   if (!db) return;
   await db.runAsync('DELETE FROM emergency_contacts WHERE contact_id = ?;', [contactId]);
 }
+
+// ── 8. USER SETTINGS QUERIES ───────────────────────────────────────────────
+
+export async function getUserSetting(key: string): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.getFirstAsync<{ value: string }>(
+    'SELECT value FROM user_settings WHERE key = ?;',
+    [key]
+  );
+  return result?.value ?? null;
+}
+
+export async function setUserSetting(key: string, value: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.runAsync(
+    `INSERT OR REPLACE INTO user_settings (key, value, updated_at) 
+     VALUES (?, ?, CURRENT_TIMESTAMP);`,
+    [key, value]
+  );
+}
+
+export async function getPin(): Promise<string> {
+  const pin = await getUserSetting('pin');
+  return pin ?? '1234';
+}
+
+export async function setPin(newPin: string): Promise<void> {
+  await setUserSetting('pin', newPin);
+}
+
+export async function getUsername(): Promise<string> {
+  const username = await getUserSetting('username');
+  return username ?? 'User';
+}
+
+export async function setUsername(newUsername: string): Promise<void> {
+  await setUserSetting('username', newUsername);
+}

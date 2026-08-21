@@ -10,6 +10,10 @@ import {
   getFeatureVectorCount,
   getOldestFeatureVector,
   clearAllFeatureVectors,
+  getPin,
+  setPin,
+  getUsername,
+  setUsername,
 } from '../database/queries';
 import { styles, colors } from '../constants/theme';
 
@@ -66,9 +70,18 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
   const [dataCount, setDataCount] = useState(0);
   const [oldestData, setOldestData] = useState<string | null>(null);
 
+  const [username, setUsernameState] = useState('User');
+  const [showPinForm, setShowPinForm] = useState(false);
+  const [currentPin, setCurrentPin] = useState('');
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [showUsernameForm, setShowUsernameForm] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
+
   useEffect(() => {
     loadEmergencyContacts();
     loadDataStorageInfo();
+    loadUserInfo();
   }, []);
 
   const loadDataStorageInfo = async () => {
@@ -85,6 +98,48 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
     } catch (err) {
       console.warn('Gagal memuat info storage:', err);
     }
+  };
+
+  const loadUserInfo = async () => {
+    try {
+      const savedUsername = await getUsername();
+      setUsernameState(savedUsername);
+    } catch (err) {
+      console.warn('Gagal memuat info user:', err);
+    }
+  };
+
+  const handleChangePin = async () => {
+    if (currentPin.length !== 4 || newPin.length !== 4 || confirmPin.length !== 4) {
+      Alert.alert('Error', 'PIN harus 4 digit');
+      return;
+    }
+    if (newPin !== confirmPin) {
+      Alert.alert('Error', 'PIN baru tidak cocok');
+      return;
+    }
+    const savedPin = await getPin();
+    if (currentPin !== savedPin) {
+      Alert.alert('Error', 'PIN lama salah');
+      return;
+    }
+    await setPin(newPin);
+    setCurrentPin('');
+    setNewPin('');
+    setConfirmPin('');
+    setShowPinForm(false);
+    Alert.alert('Berhasil', 'PIN berhasil diubah');
+  };
+
+  const handleChangeUsername = async () => {
+    if (!newUsername.trim()) {
+      Alert.alert('Error', 'Username tidak boleh kosong');
+      return;
+    }
+    await setUsername(newUsername.trim());
+    setUsernameState(newUsername.trim());
+    setNewUsername('');
+    setShowUsernameForm(false);
   };
 
   const handleClearAllData = () => {
@@ -236,8 +291,113 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
         <View style={styles.avatarCircle}>
           <Text style={styles.avatarEmoji}>👤</Text>
         </View>
-        <Text style={styles.profileName}>Kim Jennie</Text>
+        <Text style={styles.profileName}>{username}</Text>
         <Text style={styles.profileRole}>Pasien · BIPOLYZER</Text>
+      </View>
+
+      <View style={styles.settingSection}>
+        <Text style={styles.settingSectionLabel}>AKUN</Text>
+
+        <View style={styles.settingRow}>
+          <View style={styles.settingRowLeft}>
+            <Text style={styles.settingRowTitle}>Username</Text>
+            <Text style={styles.settingRowSub}>{username}</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.toggle, showUsernameForm ? styles.toggleOn : styles.toggleOff]}
+            onPress={() => {
+              setShowUsernameForm(!showUsernameForm);
+              setNewUsername(username);
+            }}
+          >
+            <View style={[styles.toggleThumb, showUsernameForm ? styles.toggleThumbOn : styles.toggleThumbOff]} />
+          </TouchableOpacity>
+        </View>
+
+        {showUsernameForm && (
+          <View style={styles.addReminderForm}>
+            <Text style={styles.formLabel}>Username Baru</Text>
+            <TextInput
+              style={styles.formInput}
+              placeholder="Masukkan username baru"
+              value={newUsername}
+              onChangeText={setNewUsername}
+              placeholderTextColor="#A89CB8"
+            />
+            <View style={styles.formActions}>
+              <TouchableOpacity style={styles.formCancelBtn} onPress={() => setShowUsernameForm(false)}>
+                <Text style={styles.formCancelBtnText}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.formSaveBtn} onPress={handleChangeUsername}>
+                <Text style={styles.formSaveBtnText}>Simpan</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
+        <View style={[styles.settingRow, styles.settingRowNoBorder]}>
+          <View style={styles.settingRowLeft}>
+            <Text style={styles.settingRowTitle}>Ganti PIN</Text>
+            <Text style={styles.settingRowSub}>Ubah PIN keamanan aplikasi</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.toggle, showPinForm ? styles.toggleOn : styles.toggleOff]}
+            onPress={() => setShowPinForm(!showPinForm)}
+          >
+            <View style={[styles.toggleThumb, showPinForm ? styles.toggleThumbOn : styles.toggleThumbOff]} />
+          </TouchableOpacity>
+        </View>
+
+        {showPinForm && (
+          <View style={styles.addReminderForm}>
+            <Text style={styles.formLabel}>PIN Lama</Text>
+            <TextInput
+              style={styles.formInput}
+              placeholder="Masukkan PIN lama"
+              value={currentPin}
+              onChangeText={setCurrentPin}
+              keyboardType="numeric"
+              maxLength={4}
+              secureTextEntry
+              placeholderTextColor="#A89CB8"
+            />
+            <Text style={styles.formLabel}>PIN Baru</Text>
+            <TextInput
+              style={styles.formInput}
+              placeholder="Masukkan PIN baru (4 digit)"
+              value={newPin}
+              onChangeText={setNewPin}
+              keyboardType="numeric"
+              maxLength={4}
+              secureTextEntry
+              placeholderTextColor="#A89CB8"
+            />
+            <Text style={styles.formLabel}>Konfirmasi PIN Baru</Text>
+            <TextInput
+              style={styles.formInput}
+              placeholder="Ulangi PIN baru"
+              value={confirmPin}
+              onChangeText={setConfirmPin}
+              keyboardType="numeric"
+              maxLength={4}
+              secureTextEntry
+              placeholderTextColor="#A89CB8"
+            />
+            <View style={styles.formActions}>
+              <TouchableOpacity style={styles.formCancelBtn} onPress={() => {
+                setShowPinForm(false);
+                setCurrentPin('');
+                setNewPin('');
+                setConfirmPin('');
+              }}>
+                <Text style={styles.formCancelBtnText}>Batal</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.formSaveBtn} onPress={handleChangePin}>
+                <Text style={styles.formSaveBtnText}>Simpan</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </View>
 
       <View style={styles.settingSection}>

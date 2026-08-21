@@ -89,21 +89,21 @@
 ## PHASE 1: ACCOUNT & SECURITY
 
 ### P1-1: Ganti PIN
-- [ ] Section "AKUN" di SettingsScreen
-- [ ] Input PIN lama → PIN baru → konfirmasi
-- [ ] Simpan PIN di AsyncStorage (hashed)
-- [ ] LockScreen baca PIN dari AsyncStorage
+- [x] Section "AKUN" di SettingsScreen
+- [x] Input PIN lama → PIN baru → konfirmasi
+- [x] Simpan PIN di SQLite (user_settings table)
+- [x] LockScreen baca PIN dari database
 
-**Files:** `SettingsScreen.tsx`, `LockScreen.tsx`, `App.tsx`
+**Files:** `SettingsScreen.tsx`, `LockScreen.tsx`, `queries.ts`, `sqlite.ts`
 
 ---
 
 ### P1-2: Ganti Username
-- [ ] Input username baru → simpan
-- [ ] Simpan di AsyncStorage
-- [ ] Profile card baca dari AsyncStorage
+- [x] Input username baru → simpan
+- [x] Simpan di SQLite (user_settings table)
+- [x] Profile card baca dari database
 
-**Files:** `SettingsScreen.tsx`, `App.tsx`
+**Files:** `SettingsScreen.tsx`, `queries.ts`
 
 ---
 
@@ -192,7 +192,9 @@
 | 21 Aug 2026 | P0-4: Sembunyikan chart vocal | DONE |
 | 21 Aug 2026 | P0-5: Simplifikasi HomeScreen | DONE |
 | 21 Aug 2026 | P0-6: RS Jiwa & Suicide Hotline | DONE |
-| | **Phase 0 SELESAI** | |
+| 21 Aug 2026 | P1-1: Ganti PIN | DONE |
+| 21 Aug 2026 | P1-2: Ganti Username | DONE |
+| | **Phase 0 + Phase 1 SELESAI** | |
 | | | |
 
 ---
