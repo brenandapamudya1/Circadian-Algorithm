@@ -4,11 +4,7 @@ import { getRemindersFromDb, updateReminderStatusInDb, DbReminder } from '../dat
 import { notificationService } from '../services/notificationService';
 import { styles } from '../constants/theme';
 
-interface DailyReminderCardProps {
-  onOpenSettings: () => void;
-}
-
-export const DailyReminderCard: React.FC<DailyReminderCardProps> = ({ onOpenSettings }) => {
+export const DailyReminderCard: React.FC = () => {
   const [reminders, setReminders] = useState<DbReminder[]>([]);
 
   useEffect(() => {
@@ -46,9 +42,6 @@ export const DailyReminderCard: React.FC<DailyReminderCardProps> = ({ onOpenSett
     <View style={styles.dailyReminderCard}>
       <View style={styles.dailyReminderHeader}>
         <Text style={styles.dailyReminderTitle}>Jadwal Hari Ini</Text>
-        <TouchableOpacity onPress={onOpenSettings}>
-          <Text style={styles.dailyReminderSettings}>Atur →</Text>
-        </TouchableOpacity>
       </View>
 
       {activeReminders.length === 0 ? (

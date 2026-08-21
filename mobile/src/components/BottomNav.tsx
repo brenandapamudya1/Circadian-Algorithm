@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { styles } from '../constants/theme';
 
-export type TabName = 'Beranda' | 'Tren' | 'Riwayat';
+export type TabName = 'Beranda' | 'Tren' | 'Riwayat' | 'Pengaturan';
 
 interface BottomNavProps {
   activeTab: TabName;
@@ -14,6 +14,7 @@ const tabs: { name: TabName; icon: any; label: string }[] = [
   { name: 'Beranda', icon: require('../../assets/ICON_HOMEPAGE/home_icon.png'), label: 'Beranda' },
   { name: 'Tren', icon: require('../../assets/ICON_HOMEPAGE/tren_icon.png'), label: 'Tren' },
   { name: 'Riwayat', icon: require('../../assets/ICON_HOMEPAGE/riwayat_icon.png'), label: 'Riwayat' },
+  { name: 'Pengaturan', icon: require('../../assets/ICON_HOMEPAGE/gear_icon.png'), label: 'Pengaturan' },
 ];
 
 export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabPress }) => {

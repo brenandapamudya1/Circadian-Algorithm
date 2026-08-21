@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text } from 'react-native';
 import { PipelineResult } from '../circadian/pipeline';
 import { ConnectionState } from '../services/bleManager';
 import { MetricCard } from '../components/MetricCard';
@@ -11,10 +11,9 @@ import { styles } from '../constants/theme';
 interface HomeScreenProps {
   latestResult: PipelineResult | null;
   bleConnectionState: ConnectionState;
-  onOpenSettings: () => void;
 }
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ latestResult, bleConnectionState, onOpenSettings }) => {
+export const HomeScreen: React.FC<HomeScreenProps> = ({ latestResult, bleConnectionState }) => {
   const [username, setUsername] = useState('User');
 
   useEffect(() => {
@@ -43,9 +42,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ latestResult, bleConnect
           <Text style={styles.headerTitle}>{getGreeting()}, {username}!</Text>
           <Text style={styles.headerSubtitle}>Bagaimana hari ini?</Text>
         </View>
-        <TouchableOpacity style={styles.headerSettingsBtn} onPress={onOpenSettings}>
-          <Text style={styles.headerSettingsIcon}>⚙</Text>
-        </TouchableOpacity>
       </View>
 
       <View style={styles.content}>
@@ -106,7 +102,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ latestResult, bleConnect
           suppressedReason={latestResult?.suppressed_reason ?? undefined}
         />
 
-        <DailyReminderCard onOpenSettings={onOpenSettings} />
+        <DailyReminderCard />
       </View>
     </View>
   );
