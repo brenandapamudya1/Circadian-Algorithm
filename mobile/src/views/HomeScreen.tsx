@@ -4,7 +4,6 @@ import { PipelineResult } from '../circadian/pipeline';
 import { ConnectionState } from '../services/bleManager';
 import { MetricCard } from '../components/MetricCard';
 import { AlertPanel } from '../components/AlertPanel';
-import { DailyReminderCard } from '../components/DailyReminderCard';
 import { getUsername } from '../database/queries';
 import { styles } from '../constants/theme';
 
@@ -101,8 +100,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ latestResult, bleConnect
           windowName={latestResult?.window_name}
           suppressedReason={latestResult?.suppressed_reason ?? undefined}
         />
-
-        <DailyReminderCard />
       </View>
     </View>
   );
