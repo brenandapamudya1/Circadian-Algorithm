@@ -121,34 +121,34 @@ function AppContent() {
     <>
       {isUnlocked && (
         <SafeAreaView style={[styles.container, bgStyle]}>
-          <ScrollView
-            contentContainerStyle={styles.scrollContainer}
-            showsVerticalScrollIndicator={false}
-            style={{ flex: 1 }}
-          >
-            {activeTab === 'Beranda' && (
-              <HomeScreen
-                latestResult={latestResult}
-                bleConnectionState={bleConnectionState}
-              />
-            )}
+          {activeTab === 'Pengaturan' ? (
+            <SettingsScreen
+              bleConnectionState={bleConnectionState}
+              onOpenBleScanner={openBleScanner}
+              onClose={() => setActiveTab('Beranda')}
+            />
+          ) : (
+            <ScrollView
+              contentContainerStyle={styles.scrollContainer}
+              showsVerticalScrollIndicator={false}
+              style={{ flex: 1 }}
+            >
+              {activeTab === 'Beranda' && (
+                <HomeScreen
+                  latestResult={latestResult}
+                  bleConnectionState={bleConnectionState}
+                />
+              )}
 
-            {activeTab === 'Tren' && (
-              <TrenScreen historicalVectors={historicalVectors} />
-            )}
+              {activeTab === 'Tren' && (
+                <TrenScreen historicalVectors={historicalVectors} />
+              )}
 
-            {activeTab === 'Riwayat' && (
-              <RiwayatScreen historicalVectors={historicalVectors} />
-            )}
-
-            {activeTab === 'Pengaturan' && (
-              <SettingsScreen
-                bleConnectionState={bleConnectionState}
-                onOpenBleScanner={openBleScanner}
-                onClose={() => setActiveTab('Beranda')}
-              />
-            )}
-          </ScrollView>
+              {activeTab === 'Riwayat' && (
+                <RiwayatScreen historicalVectors={historicalVectors} />
+              )}
+            </ScrollView>
+          )}
 
           <BottomNav activeTab={activeTab} onTabPress={setActiveTab} />
         </SafeAreaView>
