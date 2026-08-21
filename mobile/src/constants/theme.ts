@@ -717,13 +717,16 @@ export const styles = StyleSheet.create({
   },
   badgeCard: {
     width: '31%' as const,
-    backgroundColor: colors.veryLightPurple,
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 12,
     alignItems: 'center' as const,
+    borderWidth: 1.5,
+    borderColor: '#D4C4F7',
   },
   badgeCardLocked: {
     backgroundColor: '#F0EAF8',
+    borderColor: 'transparent',
     opacity: 0.6,
   },
   badgeIconImg: {
