@@ -298,21 +298,19 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
       <View style={styles.settingSection}>
         <Text style={styles.settingSectionLabel}>AKUN</Text>
 
-        <View style={styles.settingRow}>
+        <TouchableOpacity
+          style={styles.settingRow}
+          onPress={() => {
+            setShowUsernameForm(!showUsernameForm);
+            setNewUsername(username);
+          }}
+        >
           <View style={styles.settingRowLeft}>
             <Text style={styles.settingRowTitle}>Username</Text>
             <Text style={styles.settingRowSub}>{username}</Text>
           </View>
-          <TouchableOpacity
-            style={[styles.toggle, showUsernameForm ? styles.toggleOn : styles.toggleOff]}
-            onPress={() => {
-              setShowUsernameForm(!showUsernameForm);
-              setNewUsername(username);
-            }}
-          >
-            <View style={[styles.toggleThumb, showUsernameForm ? styles.toggleThumbOn : styles.toggleThumbOff]} />
-          </TouchableOpacity>
-        </View>
+          <Text style={styles.settingRowChevron}>›</Text>
+        </TouchableOpacity>
 
         {showUsernameForm && (
           <View style={styles.addReminderForm}>
@@ -335,18 +333,16 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
           </View>
         )}
 
-        <View style={[styles.settingRow, styles.settingRowNoBorder]}>
+        <TouchableOpacity
+          style={[styles.settingRow, styles.settingRowNoBorder]}
+          onPress={() => setShowPinForm(!showPinForm)}
+        >
           <View style={styles.settingRowLeft}>
             <Text style={styles.settingRowTitle}>Ganti PIN</Text>
             <Text style={styles.settingRowSub}>Ubah PIN keamanan aplikasi</Text>
           </View>
-          <TouchableOpacity
-            style={[styles.toggle, showPinForm ? styles.toggleOn : styles.toggleOff]}
-            onPress={() => setShowPinForm(!showPinForm)}
-          >
-            <View style={[styles.toggleThumb, showPinForm ? styles.toggleThumbOn : styles.toggleThumbOff]} />
-          </TouchableOpacity>
-        </View>
+          <Text style={styles.settingRowChevron}>›</Text>
+        </TouchableOpacity>
 
         {showPinForm && (
           <View style={styles.addReminderForm}>
