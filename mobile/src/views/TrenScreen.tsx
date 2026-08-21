@@ -111,20 +111,27 @@ function aggregatePhaseByWeek(vectors: DbFeatureVector[]): { values: (number | n
 
 export const TrenScreen: React.FC<TrenScreenProps> = ({ historicalVectors }) => {
   const [trendFilter, setTrendFilter] = useState<TrendFilter>('Mingguan');
-  const [gamification, setGamification] = useState<GamificationState | null>(null);
+  const [gamification, setGamification] = useState<GamificationState>({
+    totalPoints: 0,
+    streakDays: 0,
+    lastActiveDate: null,
+    badgesUnlocked: [],
+    totalDaysWithData: 0,
+    stableDays: 0,
+  });
 
   useEffect(() => {
     loadGamification();
-  }, []);
+  }, [historicalVectors]);
 
   const loadGamification = async () => {
     try {
-      const state = await getGamificationState();
-      setGamification(state);
       await updateStreak();
       await checkAndUnlockBadges();
       const updated = await getGamificationState();
-      setGamification(updated);
+      if (updated) {
+        setGamification(updated);
+      }
     } catch (err) {
       console.warn('Gagal memuat gamifikasi:', err);
     }
@@ -225,19 +232,15 @@ export const TrenScreen: React.FC<TrenScreenProps> = ({ historicalVectors }) => 
         </View>
       </View>
 
-      {gamification && (
-        <StreakCounter streak={gamification.streakDays} />
-      )}
+      <StreakCounter streak={gamification.streakDays} />
 
-      {gamification && (
-        <View style={styles.badgeSection}>
-          <Text style={styles.badgeSectionTitle}>Pencapaian</Text>
-          <BadgeGrid
-            badges={BADGES}
-            unlockedIds={gamification.badgesUnlocked}
-          />
-        </View>
-      )}
+      <View style={styles.badgeSection}>
+        <Text style={styles.badgeSectionTitle}>Pencapaian</Text>
+        <BadgeGrid
+          badges={BADGES}
+          unlockedIds={gamification.badgesUnlocked}
+        />
+      </View>
     </View>
   );
 };
