@@ -5,14 +5,6 @@ import { ConnectionState } from '../services/bleManager';
 import { MetricCard } from '../components/MetricCard';
 import { AlertPanel } from '../components/AlertPanel';
 import { DailyReminderCard } from '../components/DailyReminderCard';
-import { StreakCounter, BadgeGrid } from '../components/GamificationBadge';
-import {
-  getGamificationState,
-  checkAndUnlockBadges,
-  updateStreak,
-  GamificationState,
-  BADGES,
-} from '../services/gamificationService';
 import { getUsername } from '../database/queries';
 import { styles } from '../constants/theme';
 
@@ -23,34 +15,11 @@ interface HomeScreenProps {
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({ latestResult, bleConnectionState, onOpenSettings }) => {
-  const [gamification, setGamification] = useState<GamificationState | null>(null);
   const [username, setUsername] = useState('User');
 
   useEffect(() => {
-    loadGamificationData();
+    getUsername().then(setUsername);
   }, []);
-
-  useEffect(() => {
-    if (bleConnectionState === 'connected') {
-      updateStreak();
-      checkAndUnlockBadges().then((newBadges) => {
-        if (newBadges.length > 0) {
-          loadGamificationData();
-        }
-      });
-    }
-  }, [bleConnectionState]);
-
-  const loadGamificationData = async () => {
-    try {
-      const state = await getGamificationState();
-      setGamification(state);
-      const name = await getUsername();
-      setUsername(name);
-    } catch (err) {
-      console.warn('Gagal memuat data gamifikasi:', err);
-    }
-  };
 
   const getAlertState = (): 'anomaly' | 'gated' | 'normal' | 'disconnected' => {
     if (!latestResult) return 'disconnected';
@@ -137,21 +106,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ latestResult, bleConnect
           suppressedReason={latestResult?.suppressed_reason ?? undefined}
         />
 
-        {gamification && (
-          <StreakCounter streak={gamification.streakDays} />
-        )}
-
         <DailyReminderCard onOpenSettings={onOpenSettings} />
-
-        {gamification && (
-          <View style={styles.badgeSection}>
-            <Text style={styles.badgeSectionTitle}>Pencapaian</Text>
-            <BadgeGrid
-              badges={BADGES}
-              unlockedIds={gamification.badgesUnlocked}
-            />
-          </View>
-        )}
       </View>
     </View>
   );

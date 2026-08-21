@@ -1,6 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { TrendChart } from '../components/TrendChart';
+import { StreakCounter, BadgeGrid } from '../components/GamificationBadge';
+import {
+  getGamificationState,
+  checkAndUnlockBadges,
+  updateStreak,
+  GamificationState,
+  BADGES,
+} from '../services/gamificationService';
 import { DbFeatureVector } from '../database/queries';
 import { styles } from '../constants/theme';
 
@@ -101,6 +109,24 @@ function aggregatePhaseByWeek(vectors: DbFeatureVector[]): { values: number[]; l
 
 export const TrenScreen: React.FC<TrenScreenProps> = ({ historicalVectors }) => {
   const [trendFilter, setTrendFilter] = useState<TrendFilter>('Mingguan');
+  const [gamification, setGamification] = useState<GamificationState | null>(null);
+
+  useEffect(() => {
+    loadGamification();
+  }, []);
+
+  const loadGamification = async () => {
+    try {
+      const state = await getGamificationState();
+      setGamification(state);
+      await updateStreak();
+      await checkAndUnlockBadges();
+      const updated = await getGamificationState();
+      setGamification(updated);
+    } catch (err) {
+      console.warn('Gagal memuat gamifikasi:', err);
+    }
+  };
 
   const isWeekly = trendFilter === 'Bulanan';
   const aggregate = isWeekly ? aggregatePhaseByWeek : aggregatePhaseByDay;
@@ -192,6 +218,20 @@ export const TrenScreen: React.FC<TrenScreenProps> = ({ historicalVectors }) => 
           </Text>
         </View>
       </View>
+
+      {gamification && (
+        <StreakCounter streak={gamification.streakDays} />
+      )}
+
+      {gamification && (
+        <View style={styles.badgeSection}>
+          <Text style={styles.badgeSectionTitle}>Pencapaian</Text>
+          <BadgeGrid
+            badges={BADGES}
+            unlockedIds={gamification.badgesUnlocked}
+          />
+        </View>
+      )}
     </View>
   );
 };
