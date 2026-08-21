@@ -20,6 +20,7 @@ export interface GamificationState {
   badgesUnlocked: string[];
   totalDaysWithData: number;
   stableDays: number;
+  totalEpochs: number;
 }
 
 const lockedIcon = require('../../assets/BADGES/badge_locked.png');
@@ -31,7 +32,7 @@ export const BADGES: Badge[] = [
     description: 'Berhasil menghubungkan gelang untuk pertama kali',
     icon: require('../../assets/BADGES/badge_chain.png'),
     lockedIcon,
-    condition: (state) => state.totalPoints > 0,
+    condition: (state) => state.totalDaysWithData > 0 || state.totalEpochs > 0,
   },
   {
     id: 'streak_3',
@@ -79,7 +80,7 @@ export const BADGES: Badge[] = [
     description: 'Mengumpulkan 100 epoch data',
     icon: require('../../assets/BADGES/badge_chart.png'),
     lockedIcon,
-    condition: (state) => state.totalDaysWithData >= 100,
+    condition: (state) => state.totalEpochs >= 100,
   },
 ];
 
@@ -112,7 +113,7 @@ export async function calculateStreak(): Promise<number> {
   for (let i = 0; i < sortedDays.length - 1; i++) {
     const current = new Date(sortedDays[i]);
     const next = new Date(sortedDays[i + 1]);
-    const diffDays = Math.floor((current.getTime() - next.getTime()) / (1000 * 60 * 60 * 24));
+    const diffDays = Math.round((current.getTime() - next.getTime()) / (1000 * 60 * 60 * 24));
 
     if (diffDays === 1) {
       streak++;
@@ -126,7 +127,10 @@ export async function calculateStreak(): Promise<number> {
 
 export async function calculateStableDays(): Promise<number> {
   const vectors = await getRecentFeatureVectors(500);
-  return vectors.filter(v => v.circadian_valid === 1).length;
+  const stableDaysSet = new Set(
+    vectors.filter(v => v.circadian_valid === 1).map(v => v.timestamp.split('T')[0])
+  );
+  return stableDaysSet.size;
 }
 
 export async function getGamificationState(): Promise<GamificationState> {
@@ -144,6 +148,7 @@ export async function getGamificationState(): Promise<GamificationState> {
     badgesUnlocked: progress ? JSON.parse(progress.badges_unlocked || '[]') : [],
     totalDaysWithData: uniqueDays.size,
     stableDays,
+    totalEpochs: vectors.length,
   };
 
   return state;

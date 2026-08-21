@@ -118,6 +118,7 @@ export const TrenScreen: React.FC<TrenScreenProps> = ({ historicalVectors }) => 
     badgesUnlocked: [],
     totalDaysWithData: 0,
     stableDays: 0,
+    totalEpochs: 0,
   });
 
   useEffect(() => {
