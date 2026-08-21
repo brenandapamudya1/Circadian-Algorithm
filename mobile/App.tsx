@@ -125,7 +125,6 @@ function AppContent() {
             <SettingsScreen
               bleConnectionState={bleConnectionState}
               onOpenBleScanner={openBleScanner}
-              onClose={() => setActiveTab('Beranda')}
             />
           ) : (
             <ScrollView

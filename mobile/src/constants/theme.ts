@@ -654,13 +654,8 @@ export const styles = StyleSheet.create({
 
   // ==================== SETTINGS OVERLAY ====================
   settingsOverlay: {
-    position: 'absolute' as const,
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     backgroundColor: colors.primary,
-    zIndex: 9998,
   },
   settingsBackBtn: {
     paddingVertical: 8,
