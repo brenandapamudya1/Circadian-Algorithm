@@ -418,6 +418,7 @@ class BipolyzerBleManager {
         if (char?.value) {
           try {
             const rawJsonStr = base64ToUtf8(char.value);
+            console.log(`[BLE] Data diterima (decoded): ${rawJsonStr.substring(0, 100)}...`);
             const rawSensorData: RawSensorData = JSON.parse(rawJsonStr);
             
             // Trigger callbacks data mentah
@@ -519,14 +520,15 @@ class BipolyzerBleManager {
    */
   private async syncTimeToESP(device: Device): Promise<void> {
     try {
-      const epochMs = Date.now();
-      const base64Time = btoa(String(epochMs));
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const base64Time = btoa(timeStr);
       await device.writeCharacteristicWithResponseForService(
         SERVICE_UUID,
         TIME_CHAR_UUID,
         base64Time,
       );
-      console.log(`[BLE] Time sync terkirim: ${epochMs}`);
+      console.log(`[BLE] Time sync terkirim: ${timeStr}`);
     } catch (error) {
       console.warn('[BLE] Gagal kirim time sync:', error);
     }

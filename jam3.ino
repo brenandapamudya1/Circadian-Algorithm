@@ -130,18 +130,16 @@ class MyServerCallbacks : public BLEServerCallbacks {
 // === CALLBACK WRITE TIME ===
 class TimeSyncCallbacks : public BLECharacteristicCallbacks {
     void onWrite(BLECharacteristic *pChar) {
-        String value = pChar->getValue();
-        if (value.length() > 0) {
-            // Parse epoch millis dari phone
-            unsigned long ts = strtoul(value.c_str(), NULL, 10);
-            if (ts > 0) {
-                time_t phoneTime = ts / 1000;
-                struct tm *tm = localtime(&phoneTime);
-                setClockReference(tm->tm_hour, tm->tm_min);
+        std::string value = pChar->getValue();
+        if (value.length() >= 5 && value[2] == ':') {
+            int hour = atoi(value.substr(0, 2).c_str());
+            int minute = atoi(value.substr(3, 2).c_str());
+            if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+                setClockReference(hour, minute);
                 Serial.print("[TIME] Sync dari phone: ");
-                Serial.print(tm->tm_hour);
+                Serial.print(hour);
                 Serial.print(":");
-                Serial.println(tm->tm_min);
+                Serial.println(minute);
             }
         }
     }
