@@ -2,6 +2,7 @@
   "expo": {
     "name": "Bypolizer",
     "slug": "bypolizer",
+    "owner": "zendata",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/larger_icon_app.png",
@@ -15,14 +16,19 @@
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/larger_icon_app.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_CONNECT"
+      ]
     },
     "web": {
       "favicon": "./assets/larger_icon_app.png"
     },
     "extra": {
       "eas": {
-        "projectId": "dc6a92ec-7ac0-4383-b4a6-cb6bbf6bef71"
+        "projectId": "b5471de8-d641-4702-bcd4-0eb6ea8ae371"
       }
     },
     "plugins": [

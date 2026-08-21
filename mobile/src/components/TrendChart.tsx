@@ -5,10 +5,12 @@ import { styles } from '../constants/theme';
 
 const { width } = Dimensions.get('window');
 
-interface TrendChartProps {
-  values: number[];
+export interface TrendChartProps {
+  values: (number | null)[];
   labels: string[];
   maxY: number;
+  gridValues?: number[];
+  formatYLabel?: (val: number) => string;
   showTooltip?: boolean;
   tooltipIndex?: number;
   tooltipText?: string;
@@ -19,15 +21,17 @@ export const TrendChart: React.FC<TrendChartProps> = ({
   values,
   labels,
   maxY,
+  gridValues,
+  formatYLabel,
   showTooltip = false,
   tooltipIndex = 3,
   tooltipText = 'Average 50 ms',
   accentColor = '#A88AD3',
 }) => {
-  const topPadding = 42;
+  const topPadding = 35;
   const bottomPadding = 32;
-  const paddingLeft = 30;
-  const paddingRight = 18;
+  const paddingLeft = 35;
+  const paddingRight = 20;
   const svgWidth = width - 80;
   const chartWidth = svgWidth - paddingLeft - paddingRight;
   const chartHeight = 110;
@@ -35,14 +39,39 @@ export const TrendChart: React.FC<TrendChartProps> = ({
 
   const numSegments = Math.max(labels.length - 1, 1);
 
+  // Map values to 2D points (y is null if val is null)
+  const validPoints: { x: number; y: number; val: number; idx: number }[] = [];
   const points = values.map((val, idx) => {
     const x = paddingLeft + (idx * (chartWidth / numSegments));
+    if (val === null || val === undefined) {
+      return { x, y: null, val: null, idx };
+    }
     const y = topPadding + chartHeight - (val / maxY) * chartHeight;
-    return { x, y };
+    const pt = { x, y, val, idx };
+    validPoints.push(pt as { x: number; y: number; val: number; idx: number });
+    return pt;
   });
 
+  // Group contiguous valid points into line segments
+  const segments: { x: number; y: number }[][] = [];
+  let currentSegment: { x: number; y: number }[] = [];
+
+  for (const pt of points) {
+    if (pt.y !== null) {
+      currentSegment.push({ x: pt.x, y: pt.y });
+    } else {
+      if (currentSegment.length > 0) {
+        segments.push(currentSegment);
+        currentSegment = [];
+      }
+    }
+  }
+  if (currentSegment.length > 0) {
+    segments.push(currentSegment);
+  }
+
   const getSmoothPath = (pts: { x: number; y: number }[]) => {
-    if (pts.length === 0) return '';
+    if (pts.length <= 1) return '';
     let path = `M ${pts[0].x} ${pts[0].y}`;
     for (let i = 0; i < pts.length - 1; i++) {
       const p0 = pts[i];
@@ -56,20 +85,15 @@ export const TrendChart: React.FC<TrendChartProps> = ({
     return path;
   };
 
-  const linePath = getSmoothPath(points);
-  const gridValues = [0, 25, 50, 75];
-  const clampedTipIdx = Math.min(tooltipIndex, points.length - 1);
-  const tipPt = points[clampedTipIdx];
-  const tipBoxW = 122;
-  const tipBoxH = 22;
-  const tipBoxX = Math.max(paddingLeft, Math.min(tipPt.x - tipBoxW / 2, paddingLeft + chartWidth - tipBoxW));
-  const tipBoxY = Math.max(4, tipPt.y - tipBoxH - 10);
+  const activeGridValues = gridValues ?? [0, 1, 2];
 
   return (
     <View style={styles.chartWrapper}>
       <Svg height={svgHeight} width={svgWidth}>
-        {gridValues.map((gridVal) => {
+        {/* Y Axis Grid lines & Labels */}
+        {activeGridValues.map((gridVal) => {
           const yPos = topPadding + chartHeight - (gridVal / maxY) * chartHeight;
+          const labelText = formatYLabel ? formatYLabel(gridVal) : `${gridVal}`;
           return (
             <G key={gridVal}>
               <Line
@@ -79,69 +103,69 @@ export const TrendChart: React.FC<TrendChartProps> = ({
                 y2={yPos}
                 stroke="#ECDFF6"
                 strokeWidth="1"
+                strokeDasharray={gridVal === 0 ? undefined : '3,3'}
               />
               <SvgText
-                x={paddingLeft - 5}
+                x={paddingLeft - 8}
                 y={yPos + 4}
                 fill="#9E8CB0"
                 fontSize="10"
+                fontWeight="500"
                 textAnchor="end"
               >
-                {gridVal}
+                {labelText}
               </SvgText>
             </G>
           );
         })}
 
-        <Path
-          d={linePath}
-          fill="none"
-          stroke={`${accentColor}35`}
-          strokeWidth="12"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+        {/* Line Segments */}
+        {segments.map((seg, sIdx) => {
+          if (seg.length <= 1) return null;
+          const pathD = getSmoothPath(seg);
+          return (
+            <G key={`seg-${sIdx}`}>
+              <Path
+                d={pathD}
+                fill="none"
+                stroke={`${accentColor}35`}
+                strokeWidth="12"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <Path
+                d={pathD}
+                fill="none"
+                stroke={accentColor}
+                strokeWidth="3.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </G>
+          );
+        })}
 
-        <Path
-          d={linePath}
-          fill="none"
-          stroke={accentColor}
-          strokeWidth="3.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-
-        {showTooltip && points.length > 0 && (
-          <G>
-            <Rect
-              x={tipBoxX}
-              y={tipBoxY}
-              width={tipBoxW}
-              height={tipBoxH}
-              rx={6}
-              fill="#2E1E43"
-            />
-            <SvgText
-              x={tipBoxX + tipBoxW / 2}
-              y={tipBoxY + 14}
-              fill="#FFFFFF"
-              fontSize="10"
-              fontWeight="normal"
-              textAnchor="middle"
-            >
-              {tooltipText}
-            </SvgText>
+        {/* Data Point Circles */}
+        {validPoints.map((pt) => (
+          <G key={`pt-${pt.idx}`}>
             <Circle
-              cx={tipPt.x}
-              cy={tipPt.y}
-              r={5.5}
+              cx={pt.x}
+              cy={pt.y}
+              r={7}
+              fill={`${accentColor}40`}
+            />
+            <Circle
+              cx={pt.x}
+              cy={pt.y}
+              r={4}
               fill={accentColor}
               stroke="#FFFFFF"
-              strokeWidth="2.5"
+              strokeWidth="2"
             />
           </G>
-        )}
+        ))}
 
+        {/* X Axis Day Labels */}
         {labels.map((label, idx) => {
           const xPos = paddingLeft + (idx * (chartWidth / numSegments));
           return (
@@ -151,7 +175,7 @@ export const TrendChart: React.FC<TrendChartProps> = ({
               y={topPadding + chartHeight + 22}
               fill="#5A4570"
               fontSize="11"
-              fontWeight="normal"
+              fontWeight={values[idx] !== null && values[idx] !== undefined ? 'bold' : 'normal'}
               textAnchor="middle"
             >
               {label}

@@ -37,8 +37,8 @@ function classifyPhase(fv: DbFeatureVector): number {
   return 0;
 }
 
-function aggregatePhaseByDay(vectors: DbFeatureVector[]): { values: number[]; labels: string[]; hasData: boolean; colors: string[] } {
-  if (vectors.length === 0) return { values: [0, 0, 0, 0, 0, 0, 0], labels: DAY_LABELS, hasData: false, colors: [] };
+function aggregatePhaseByDay(vectors: DbFeatureVector[]): { values: (number | null)[]; labels: string[]; hasData: boolean; colors: string[] } {
+  if (vectors.length === 0) return { values: [null, null, null, null, null, null, null], labels: DAY_LABELS, hasData: false, colors: [] };
 
   const dailyMap = new Map<string, number[]>();
 
@@ -48,36 +48,36 @@ function aggregatePhaseByDay(vectors: DbFeatureVector[]): { values: number[]; la
     dailyMap.get(day)!.push(classifyPhase(v));
   }
 
-  const sortedDays = Array.from(dailyMap.keys()).sort().slice(-7);
-
+  const now = new Date();
   const dayNames: string[] = [];
-  const values: number[] = [];
+  const values: (number | null)[] = [];
   const colors: string[] = [];
 
-  for (const day of sortedDays) {
-    const date = new Date(day + 'T00:00:00');
-    const dayIdx = (date.getDay() + 6) % 7;
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    const dayIdx = (d.getDay() + 6) % 7;
     dayNames.push(DAY_LABELS[dayIdx]);
-    const dayValues = dailyMap.get(day) || [];
-    const avg = dayValues.length > 0 ? dayValues.reduce((a, b) => a + b, 0) / dayValues.length : 0;
-    values.push(avg);
 
-    if (avg >= 1.5) colors.push('#388E3C');
-    else if (avg >= 0.5) colors.push('#E8A838');
-    else colors.push('#E06060');
+    if (dailyMap.has(dateStr)) {
+      const dayValues = dailyMap.get(dateStr)!;
+      const avg = dayValues.length > 0 ? dayValues.reduce((a, b) => a + b, 0) / dayValues.length : 0;
+      values.push(avg);
+      if (avg >= 1.5) colors.push('#388E3C');
+      else if (avg >= 0.5) colors.push('#E8A838');
+      else colors.push('#E06060');
+    } else {
+      values.push(null);
+      colors.push('#A88AD3');
+    }
   }
 
-  while (dayNames.length < 7) {
-    dayNames.unshift('');
-    values.unshift(0);
-    colors.unshift('#E06060');
-  }
-
-  return { values, labels: dayNames, hasData: values.some(v => v > 0), colors };
+  return { values, labels: dayNames, hasData: values.some(v => v !== null), colors };
 }
 
-function aggregatePhaseByWeek(vectors: DbFeatureVector[]): { values: number[]; labels: string[]; hasData: boolean; colors: string[] } {
-  if (vectors.length === 0) return { values: [0, 0, 0, 0], labels: WEEK_LABELS, hasData: false, colors: [] };
+function aggregatePhaseByWeek(vectors: DbFeatureVector[]): { values: (number | null)[]; labels: string[]; hasData: boolean; colors: string[] } {
+  if (vectors.length === 0) return { values: [null, null, null, null], labels: WEEK_LABELS, hasData: false, colors: [] };
 
   const now = new Date();
   const weeklyBuckets: number[][] = [[], [], [], []];
@@ -89,22 +89,24 @@ function aggregatePhaseByWeek(vectors: DbFeatureVector[]): { values: number[]; l
     if (daysAgo <= 7) weekIdx = 3;
     else if (daysAgo <= 14) weekIdx = 2;
     else if (daysAgo <= 21) weekIdx = 1;
-    else weekIdx = 0;
+    else if (daysAgo <= 28) weekIdx = 0;
+    else continue;
 
     weeklyBuckets[weekIdx].push(classifyPhase(v));
   }
 
   const values = weeklyBuckets.map(bucket =>
-    bucket.length > 0 ? bucket.reduce((a, b) => a + b, 0) / bucket.length : 0
+    bucket.length > 0 ? bucket.reduce((a, b) => a + b, 0) / bucket.length : null
   );
 
   const colors = values.map(v => {
+    if (v === null) return '#A88AD3';
     if (v >= 1.5) return '#388E3C';
     if (v >= 0.5) return '#E8A838';
     return '#E06060';
   });
 
-  return { values, labels: WEEK_LABELS, hasData: values.some(v => v > 0), colors };
+  return { values, labels: WEEK_LABELS, hasData: values.some(v => v !== null), colors };
 }
 
 export const TrenScreen: React.FC<TrenScreenProps> = ({ historicalVectors }) => {
@@ -142,7 +144,9 @@ export const TrenScreen: React.FC<TrenScreenProps> = ({ historicalVectors }) => 
   ).size;
 
   const getAccentColor = () => {
-    const avg = phase.values.filter(v => v > 0).reduce((a, b) => a + b, 0) / Math.max(phase.values.filter(v => v > 0).length, 1);
+    const validVals = phase.values.filter((v): v is number => v !== null);
+    if (validVals.length === 0) return '#388E3C';
+    const avg = validVals.reduce((a, b) => a + b, 0) / validVals.length;
     if (avg >= 1.5) return '#388E3C';
     if (avg >= 0.5) return '#E8A838';
     return '#E06060';
@@ -179,7 +183,9 @@ export const TrenScreen: React.FC<TrenScreenProps> = ({ historicalVectors }) => 
           <TrendChart
             values={phase.values}
             labels={phase.labels}
-            maxY={3}
+            maxY={2}
+            gridValues={[0, 1, 2]}
+            formatYLabel={(v) => (v === 2 ? '2' : v === 1 ? '1' : '0')}
             showTooltip={false}
             accentColor={getAccentColor()}
           />

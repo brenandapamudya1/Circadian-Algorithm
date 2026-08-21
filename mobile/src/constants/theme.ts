@@ -41,7 +41,7 @@ export const styles = StyleSheet.create({
     backgroundColor: colors.secondary,
   },
   bgPengaturan: {
-    backgroundColor: colors.secondary,
+    backgroundColor: colors.primary,
   },
   bgRiwayat: {
     backgroundColor: colors.white,
@@ -671,6 +671,7 @@ export const styles = StyleSheet.create({
   },
   settingsScrollContent: {
     flexGrow: 1,
+    paddingBottom: 100,
   },
 
   // ==================== GAMIFICATION ====================
@@ -682,9 +683,11 @@ export const styles = StyleSheet.create({
     padding: 16,
     marginTop: 16,
   },
-  streakIcon: {
-    fontSize: 32,
+  streakIconImg: {
+    width: 40,
+    height: 40,
     marginRight: 12,
+    borderRadius: 8,
   },
   streakInfo: {
     flex: 1,
@@ -724,12 +727,14 @@ export const styles = StyleSheet.create({
     backgroundColor: '#F0EAF8',
     opacity: 0.6,
   },
-  badgeIcon: {
-    fontSize: 28,
+  badgeIconImg: {
+    width: 40,
+    height: 40,
     marginBottom: 6,
+    borderRadius: 8,
   },
-  badgeIconLocked: {
-    fontSize: 24,
+  badgeIconImgLocked: {
+    opacity: 0.4,
   },
   badgeName: {
     fontSize: 11,
@@ -1399,6 +1404,7 @@ export const styles = StyleSheet.create({
   },
   epochListItem: {
     paddingVertical: 14,
+    paddingHorizontal: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#F0EAF8',
   },

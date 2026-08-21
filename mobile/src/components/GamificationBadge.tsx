@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { Badge } from '../services/gamificationService';
 import { styles } from '../constants/theme';
 
@@ -16,9 +16,10 @@ export const GamificationBadge: React.FC<GamificationBadgeProps> = ({ badge, unl
       onPress={() => onPress?.(badge)}
       activeOpacity={0.7}
     >
-      <Text style={[styles.badgeIcon, !unlocked && styles.badgeIconLocked]}>
-        {unlocked ? badge.icon : '🔒'}
-      </Text>
+      <Image
+        source={unlocked ? badge.icon : badge.lockedIcon}
+        style={[styles.badgeIconImg, !unlocked && styles.badgeIconImgLocked]}
+      />
       <Text style={[styles.badgeName, !unlocked && styles.badgeNameLocked]} numberOfLines={1}>
         {badge.name}
       </Text>
@@ -54,10 +55,12 @@ interface StreakCounterProps {
   streak: number;
 }
 
+const streakIcon = require('../../assets/BADGES/streak_fire.png');
+
 export const StreakCounter: React.FC<StreakCounterProps> = ({ streak }) => {
   return (
     <View style={styles.streakContainer}>
-      <Text style={styles.streakIcon}>🔥</Text>
+      <Image source={streakIcon} style={styles.streakIconImg} />
       <View style={styles.streakInfo}>
         <Text style={styles.streakValue}>{streak}</Text>
         <Text style={styles.streakLabel}>Hari Berturut</Text>

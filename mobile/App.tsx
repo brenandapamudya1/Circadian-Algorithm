@@ -114,7 +114,7 @@ function AppContent() {
   const bgStyle =
     activeTab === 'Tren' ? styles.bgTren
     : activeTab === 'Riwayat' ? styles.bgRiwayat
-    : activeTab === 'Pengaturan' ? styles.bgBeranda
+    : activeTab === 'Pengaturan' ? styles.bgPengaturan
     : styles.bgBeranda;
 
   return (

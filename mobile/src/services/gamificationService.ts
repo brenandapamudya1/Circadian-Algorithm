@@ -8,8 +8,9 @@ export interface Badge {
   id: string;
   name: string;
   description: string;
-  icon: string;
-  condition: (progress: GamificationState) => boolean;
+  icon: any;
+  lockedIcon: any;
+  condition: (state: GamificationState) => boolean;
 }
 
 export interface GamificationState {
@@ -21,54 +22,63 @@ export interface GamificationState {
   stableDays: number;
 }
 
+const lockedIcon = require('../../assets/BADGES/badge_locked.png');
+
 export const BADGES: Badge[] = [
   {
     id: 'first_connect',
     name: 'Pertama Kali',
     description: 'Berhasil menghubungkan gelang untuk pertama kali',
-    icon: '🔗',
+    icon: require('../../assets/BADGES/badge_chain.png'),
+    lockedIcon,
     condition: (state) => state.totalPoints > 0,
   },
   {
     id: 'streak_3',
     name: 'Konsisten 3 Hari',
     description: 'Menggunakan aplikasi selama 3 hari berturut-turut',
-    icon: '🔥',
+    icon: require('../../assets/BADGES/badge_fire.png'),
+    lockedIcon,
     condition: (state) => state.streakDays >= 3,
   },
   {
     id: 'streak_7',
     name: 'Streak Seminggu',
     description: 'Menggunakan aplikasi selama 7 hari berturut-turut',
-    icon: '⭐',
+    icon: require('../../assets/BADGES/badge_star.png'),
+    lockedIcon,
     condition: (state) => state.streakDays >= 7,
   },
   {
     id: 'streak_30',
     name: 'Streak Sebulan',
     description: 'Menggunakan aplikasi selama 30 hari berturut-turut',
-    icon: '👑',
+    icon: require('../../assets/BADGES/badge_crown.png'),
+    lockedIcon,
     condition: (state) => state.streakDays >= 30,
   },
   {
     id: 'stable_7',
     name: 'Stabil Seminggu',
     description: 'Fase stabil selama 7 hari',
-    icon: '💚',
+    icon: require('../../assets/BADGES/badge_green_heart.png'),
+    lockedIcon,
     condition: (state) => state.stableDays >= 7,
   },
   {
     id: 'stable_30',
     name: 'Stabil Sebulan',
     description: 'Fase stabil selama 30 hari',
-    icon: '💎',
+    icon: require('../../assets/BADGES/badge_diamond.png'),
+    lockedIcon,
     condition: (state) => state.stableDays >= 30,
   },
   {
     id: 'data_collector',
     name: 'Data Collector',
     description: 'Mengumpulkan 100 epoch data',
-    icon: '📊',
+    icon: require('../../assets/BADGES/badge_chart.png'),
+    lockedIcon,
     condition: (state) => state.totalDaysWithData >= 100,
   },
 ];
