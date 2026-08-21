@@ -14,7 +14,7 @@ const tabs: { name: TabName; icon: any; label: string }[] = [
   { name: 'Beranda', icon: require('../../assets/ICON_HOMEPAGE/home_icon.png'), label: 'Beranda' },
   { name: 'Tren', icon: require('../../assets/ICON_HOMEPAGE/tren_icon.png'), label: 'Tren' },
   { name: 'Riwayat', icon: require('../../assets/ICON_HOMEPAGE/riwayat_icon.png'), label: 'Riwayat' },
-  { name: 'Pengaturan', icon: require('../../assets/ICON_HOMEPAGE/gear_icon.png'), label: 'Pengaturan' },
+  { name: 'Pengaturan', icon: require('../../assets/ICON_HOMEPAGE/settings_icon.png'), label: 'Pengaturan' },
 ];
 
 export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, onTabPress }) => {
