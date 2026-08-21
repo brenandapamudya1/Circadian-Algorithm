@@ -14,27 +14,18 @@ import {
   setPin,
   getUsername,
   setUsername,
+  getRemindersFromDb,
+  insertReminderInDb,
+  updateReminderStatusInDb,
+  deleteReminderFromDb,
+  DbReminder,
 } from '../database/queries';
 import { styles, colors } from '../constants/theme';
-
-interface Reminder {
-  id: string;
-  label: string;
-  time: string;
-  active: boolean;
-  type: 'obat' | 'olahraga';
-}
 
 interface SettingsScreenProps {
   bleConnectionState: ConnectionState;
   onOpenBleScanner: () => void;
 }
-
-const DEFAULT_REMINDERS: Reminder[] = [
-  { id: '1', label: 'Minum Obat Pagi (Lithium)', time: '07:00', active: true, type: 'obat' },
-  { id: '2', label: 'Olahraga Sore (Jalan Kaki)', time: '16:30', active: true, type: 'olahraga' },
-  { id: '3', label: 'Minum Obat Malam', time: '21:00', active: false, type: 'obat' },
-];
 
 function formatPhone(phone: string): string {
   const cleaned = phone.replace(/\D/g, '');
@@ -54,7 +45,7 @@ function getInitials(name: string): string {
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionState, onOpenBleScanner }) => {
   const [notifFaseOn, setNotifFaseOn] = useState(true);
   const [notifHarianOn, setNotifHarianOn] = useState(false);
-  const [reminders, setReminders] = useState<Reminder[]>(DEFAULT_REMINDERS);
+  const [reminders, setReminders] = useState<DbReminder[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newLabel, setNewLabel] = useState('');
   const [newTime, setNewTime] = useState('08:00');
@@ -78,10 +69,40 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
   const [newUsername, setNewUsername] = useState('');
 
   useEffect(() => {
+    loadReminders();
     loadEmergencyContacts();
     loadDataStorageInfo();
     loadUserInfo();
   }, []);
+
+  const loadReminders = async () => {
+    try {
+      const data = await getRemindersFromDb();
+      if (data.length === 0) {
+        const defaults: DbReminder[] = [
+          { reminder_id: '1', label: 'Minum Obat Pagi (Lithium)', type: 'obat', time: '07:00', repeat_days: '["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]', is_active: 1, notification_id: null },
+          { reminder_id: '2', label: 'Olahraga Sore (Jalan Kaki)', type: 'olahraga', time: '16:30', repeat_days: '["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]', is_active: 1, notification_id: null },
+          { reminder_id: '3', label: 'Minum Obat Malam', type: 'obat', time: '21:00', repeat_days: '["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]', is_active: 0, notification_id: null },
+        ];
+        for (const r of defaults) {
+          await insertReminderInDb(r);
+        }
+        setReminders(defaults);
+        for (const r of defaults) {
+          if (r.is_active === 1) {
+            const [h, m] = r.time.split(':').map(Number);
+            const title = r.type === 'obat' ? '💊 Minum Obat' : '🏃 Olahraga';
+            const body = `${r.label} — ${r.time}`;
+            await notificationService.scheduleReminder(r.reminder_id, title, body, h, m, JSON.parse(r.repeat_days));
+          }
+        }
+      } else {
+        setReminders(data);
+      }
+    } catch (err) {
+      console.warn('Gagal memuat pengingat:', err);
+    }
+  };
 
   const loadDataStorageInfo = async () => {
     try {
@@ -212,41 +233,47 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
 
   const allDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  const scheduleReminderNotif = async (reminder: Reminder) => {
+  const scheduleReminderNotif = async (reminder: DbReminder) => {
     const { hour, minute } = parseTime(reminder.time);
     const title = reminder.type === 'obat' ? '💊 Minum Obat' : '🏃 Olahraga';
     const body = `${reminder.label} — ${reminder.time}`;
-    await notificationService.scheduleReminder(reminder.id, title, body, hour, minute, allDays);
+    const days = JSON.parse(reminder.repeat_days) as string[];
+    await notificationService.scheduleReminder(reminder.reminder_id, title, body, hour, minute, days);
   };
 
   const toggleReminder = async (id: string) => {
-    setReminders(prev => {
-      const updated = prev.map(rem => {
-        if (rem.id !== id) return rem;
-        const newActive = !rem.active;
-        const updatedRem = { ...rem, active: newActive };
-        if (newActive) {
-          scheduleReminderNotif(updatedRem);
-        } else {
-          notificationService.cancelReminder(id);
-        }
-        return updatedRem;
-      });
-      return updated;
-    });
+    const reminder = reminders.find(r => r.reminder_id === id);
+    if (!reminder) return;
+
+    const newActive = reminder.is_active === 0;
+    await updateReminderStatusInDb(id, newActive);
+
+    if (newActive) {
+      await scheduleReminderNotif(reminder);
+    } else {
+      await notificationService.cancelReminder(id);
+    }
+
+    setReminders(prev => prev.map(r =>
+      r.reminder_id === id ? { ...r, is_active: newActive ? 1 : 0 } : r
+    ));
   };
 
   const handleSaveReminder = async () => {
     if (!newLabel.trim()) return;
-    const newRem: Reminder = {
-      id: Date.now().toString(),
+    const id = Date.now().toString();
+    const newRem: DbReminder = {
+      reminder_id: id,
       label: newLabel,
-      time: newTime,
-      active: true,
       type: newType,
+      time: newTime,
+      repeat_days: JSON.stringify(allDays),
+      is_active: 1,
+      notification_id: null,
     };
-    setReminders(prev => [...prev, newRem]);
+    await insertReminderInDb(newRem);
     await scheduleReminderNotif(newRem);
+    setReminders(prev => [...prev, newRem]);
     setNewLabel('');
     setNewTime('08:00');
     setNewType('obat');
@@ -255,7 +282,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
 
   const handleDeleteReminder = async (id: string) => {
     await notificationService.cancelReminder(id);
-    setReminders(prev => prev.filter(rem => rem.id !== id));
+    await deleteReminderFromDb(id);
+    setReminders(prev => prev.filter(r => r.reminder_id !== id));
   };
 
   const toggleNotifFase = (value: boolean) => {
@@ -483,7 +511,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
         {reminders.map((reminder, index) => {
           const isLast = index === reminders.length - 1;
           return (
-            <View key={reminder.id} style={[styles.reminderRow, isLast && styles.reminderRowNoBorder]}>
+            <View key={reminder.reminder_id} style={[styles.reminderRow, isLast && styles.reminderRowNoBorder]}>
               <View style={styles.reminderLeft}>
                 <View style={styles.reminderMeta}>
                   <Text style={styles.reminderTitle}>{reminder.label}</Text>
@@ -492,12 +520,12 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
               </View>
               <View style={styles.reminderRightActions}>
                 <TouchableOpacity
-                  style={[styles.toggle, reminder.active ? styles.toggleOn : styles.toggleOff]}
-                  onPress={() => toggleReminder(reminder.id)}
+                  style={[styles.toggle, reminder.is_active ? styles.toggleOn : styles.toggleOff]}
+                  onPress={() => toggleReminder(reminder.reminder_id)}
                 >
-                  <View style={[styles.toggleThumb, reminder.active ? styles.toggleThumbOn : styles.toggleThumbOff]} />
+                  <View style={[styles.toggleThumb, reminder.is_active ? styles.toggleThumbOn : styles.toggleThumbOff]} />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.deleteReminderTextBtn} onPress={() => handleDeleteReminder(reminder.id)}>
+                <TouchableOpacity style={styles.deleteReminderTextBtn} onPress={() => handleDeleteReminder(reminder.reminder_id)}>
                   <Text style={styles.deleteReminderText}>Hapus</Text>
                 </TouchableOpacity>
               </View>
