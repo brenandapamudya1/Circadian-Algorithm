@@ -687,7 +687,6 @@ export const styles = StyleSheet.create({
     width: 40,
     height: 40,
     marginRight: 12,
-    borderRadius: 8,
   },
   streakInfo: {
     flex: 1,
@@ -731,7 +730,6 @@ export const styles = StyleSheet.create({
     width: 40,
     height: 40,
     marginBottom: 6,
-    borderRadius: 8,
   },
   badgeIconImgLocked: {
     opacity: 0.4,

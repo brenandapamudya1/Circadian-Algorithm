@@ -19,6 +19,7 @@ export const GamificationBadge: React.FC<GamificationBadgeProps> = ({ badge, unl
       <Image
         source={unlocked ? badge.icon : badge.lockedIcon}
         style={[styles.badgeIconImg, !unlocked && styles.badgeIconImgLocked]}
+        resizeMode="contain"
       />
       <Text style={[styles.badgeName, !unlocked && styles.badgeNameLocked]} numberOfLines={1}>
         {badge.name}
@@ -60,7 +61,7 @@ const streakIcon = require('../../assets/BADGES/streak_fire.png');
 export const StreakCounter: React.FC<StreakCounterProps> = ({ streak }) => {
   return (
     <View style={styles.streakContainer}>
-      <Image source={streakIcon} style={styles.streakIconImg} />
+      <Image source={streakIcon} style={styles.streakIconImg} resizeMode="contain" />
       <View style={styles.streakInfo}>
         <Text style={styles.streakValue}>{streak}</Text>
         <Text style={styles.streakLabel}>Hari Berturut</Text>
