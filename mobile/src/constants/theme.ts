@@ -665,7 +665,8 @@ export const styles = StyleSheet.create({
   settingsBackBtn: {
     paddingVertical: 8,
     paddingHorizontal: 4,
-    marginBottom: 8,
+    marginBottom: 16,
+    marginTop: 8,
     alignSelf: 'flex-start' as const,
   },
   settingsBackText: {

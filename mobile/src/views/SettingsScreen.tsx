@@ -567,51 +567,14 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
 
         <TouchableOpacity
           style={styles.settingRow}
-          onPress={() => Linking.openURL('tel:119')}
-        >
-          <View style={styles.settingRowLeft}>
-            <Text style={styles.settingRowTitle}>Kemenkes Crisis Center</Text>
-            <Text style={styles.settingRowSub}>119 (ext 8)</Text>
-          </View>
-          <Text style={styles.settingRowIcon}>📞</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.settingRow}
-          onPress={() => Linking.openURL('tel:021500567')}
-        >
-          <View style={styles.settingRowLeft}>
-            <Text style={styles.settingRowTitle}>Hotline Jiwa Kemenkes</Text>
-            <Text style={styles.settingRowSub}>021-500-567</Text>
-          </View>
-          <Text style={styles.settingRowIcon}>📞</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.settingRow}
-          onPress={() => Linking.openURL('tel:0215655011')}
-        >
-          <View style={styles.settingRowLeft}>
-            <Text style={styles.settingRowTitle}>Yayasan Pulih</Text>
-            <Text style={styles.settingRowSub}>021-565-5011</Text>
-          </View>
-          <Text style={styles.settingRowIcon}>📞</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.settingRow, styles.settingRowNoBorder]}
           onPress={() => Linking.openURL('https://www.google.com/maps/search/rumah+sakit+jiwa+terdekat')}
         >
           <View style={styles.settingRowLeft}>
-            <Text style={[styles.settingRowTitle, { color: colors.accent }]}>RS Jiwa Terdekat</Text>
-            <Text style={styles.settingRowSub}>Buka Google Maps</Text>
+            <Text style={styles.settingRowTitle}>RS Jiwa Terdekat</Text>
+            <Text style={styles.settingRowSub}>Cari di Google Maps</Text>
           </View>
-          <Text style={styles.settingRowIcon}>📍</Text>
+          <Text style={styles.settingRowIcon}>🗺</Text>
         </TouchableOpacity>
-      </View>
-
-      <View style={styles.settingSection}>
-        <Text style={styles.settingSectionLabel}>KONTAK KELUARGA</Text>
 
         {emergencyContacts.map((contact, index) => {
           const isLast = index === emergencyContacts.length - 1 && !showAddContactForm;
@@ -636,10 +599,10 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
 
         {showAddContactForm ? (
           <View style={styles.addReminderForm}>
-            <Text style={styles.formLabel}>Nama</Text>
+            <Text style={styles.formLabel}>Nama RS / Kontak</Text>
             <TextInput
               style={styles.formInput}
-              placeholder="Contoh: Mama"
+              placeholder="Contoh: RS Jiwa Surabaya"
               value={newContactName}
               onChangeText={setNewContactName}
               placeholderTextColor="#A89CB8"
@@ -675,7 +638,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
             onPress={() => setShowAddContactForm(true)}
             activeOpacity={0.7}
           >
-            <Text style={styles.addReminderBtnText}>+ Tambah Kontak Darurat</Text>
+            <Text style={styles.addReminderBtnText}>+ Tambah Kontak RS Darurat</Text>
           </TouchableOpacity>
         )}
       </View>
