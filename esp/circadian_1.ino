@@ -200,7 +200,6 @@ void getCurrentClock(int &outHour, int &outMinute) {
     outMinute = totalMin % 60;
 }
 
-
 void checkMaxWatchdog() {
     if (!maxConnected) return;
 
@@ -408,7 +407,7 @@ void setup() {
 
     // === BLE SETUP ===
     BLEDevice::setMTU(512);              
-    BLEDevice::init("Circadian");
+    BLEDevice::init("Circadian 1");
     
     esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_DEFAULT, ESP_PWR_LVL_N21);
     esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_N21);

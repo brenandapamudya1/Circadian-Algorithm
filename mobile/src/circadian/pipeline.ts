@@ -38,12 +38,11 @@ function calculateRmssd(rrIntervals: number[]): number {
 /**
  * Menghitung parameter keaktifan IMU (dwell minutes).
  * 
- * Prioritas:
- * 1. Jika gyroscope tersedia → gunakan gyro sum (lebih akurat untuk rotasi/gerakan)
- * 2. Jika gyroscope tidak tersedia → fallback ke accelerometer magnitude
- *    (acc deviation from gravity 9.81 m/s² menunjukkan aktivitas)
+ * Kombinasi Gyroscope & Accelerometer dengan noise thresholding yang ditingkatkan:
+ * - Gyroscope (> 15.0 °/s total 3-axis): menoleransi noise drift bawaan MPU6050 saat diam
+ * - Accelerometer magnitude (deviasi dari gravitasi 9.81 m/s²): memverifikasi pergerakan fisik nyata
  * 
- * Threshold:
+ * Threshold Output:
  *   - High activity: dwell = 0.0 menit (olahraga/gerakan aktif)
  *   - Light activity: dwell = 0.2 menit (gerakan ringan)
  *   - Idle/rest: dwell = 0.5 menit (diam/rileks)
@@ -52,27 +51,34 @@ function calculateImuDwell(
   gyr?: [number, number, number],
   acc?: [number, number, number]
 ): number {
-  // Try gyroscope first (more accurate for activity detection)
+  let isMovingByGyro = false;
+  let isLightMovingByGyro = false;
+
   if (gyr) {
     const gyroSum = Math.abs(gyr[0]) + Math.abs(gyr[1]) + Math.abs(gyr[2]);
-    if (gyroSum > 5.0) return 0.0;
-    if (gyroSum > 1.0) return 0.2;
-    return 0.5;
+    if (gyroSum > 15.0) isMovingByGyro = true;
+    else if (gyroSum > 8.0) isLightMovingByGyro = true;
   }
 
-  // Fallback to accelerometer if gyroscope not available
+  let isMovingByAcc = false;
+  let isLightMovingByAcc = false;
+
   if (acc) {
-    // Calculate deviation from normal gravity (9.81 m/s² on Z-axis when stationary)
     const accMagnitude = Math.sqrt(acc[0] * acc[0] + acc[1] * acc[1] + acc[2] * acc[2]);
     const deviation = Math.abs(accMagnitude - 9.81);
-
-    if (deviation > 3.0) return 0.0;  // Significant movement (exercise)
-    if (deviation > 1.0) return 0.2;  // Light movement
-    return 0.5;                        // Stationary/resting
+    if (deviation > 2.5) isMovingByAcc = true;
+    else if (deviation > 1.0) isLightMovingByAcc = true;
   }
 
-  // If neither available, assume resting
-  return 0.5;
+  if (isMovingByGyro || isMovingByAcc) {
+    return 0.0; // High activity
+  }
+
+  if (isLightMovingByGyro || isLightMovingByAcc) {
+    return 0.2; // Light activity
+  }
+
+  return 0.5; // Idle / resting
 }
 
 /**
@@ -96,10 +102,14 @@ export async function runCircadianPipeline(
 
   // ── TAHAP 1: PREPROCESSING ────────────────────────────────────────────────
   const hrvRmssd = calculateRmssd(rawData.rr);
-  // aZcr (Zero Crossing Rate) digunakan sebagai proxy vokal F0 karena skalanya yang mirip (~150)
-  // Jika aZcr tidak tersedia dari ESP32, fallback ke 150.0 (normal speaking range)
-  const vocalF0 = rawData.aZcr || 150.0;
-  // IMU dwell: prioritaskan gyroscope, fallback ke accelerometer jika gyr tidak ada
+  // aZcr (Zero Crossing Rate) digunakan sebagai proxy vokal F0.
+  // Sanitasi rentang fisiologis: suara percakapan manusia berada di rentang 80 Hz - 300 Hz.
+  // Jika di luar rentang (seperti saat hening / aZcr rendah), fallback ke 150.0 Hz.
+  const rawZcr = rawData.aZcr ?? 0;
+  const isHumanVoice = rawZcr >= 80 && rawZcr <= 300;
+  const vocalF0 = isHumanVoice ? rawZcr : 150.0;
+
+  // IMU dwell: kombinasi gyro (noise filtered) & accelerometer
   const imuDwell = calculateImuDwell(rawData.gyr, rawData.acc);
 
   const preprocessed: RawEpochFeatures = {

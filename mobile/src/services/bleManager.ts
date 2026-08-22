@@ -284,7 +284,8 @@ class BipolyzerBleManager {
           }
 
           if (device) {
-            const isTargetName = device.name === DEVICE_NAME || device.localName === DEVICE_NAME;
+            const deviceName = device.name || device.localName || '';
+            const isTargetName = deviceName === DEVICE_NAME || deviceName.startsWith('Circadian');
             const isTargetUuid = device.serviceUUIDs?.includes(SERVICE_UUID);
 
             if (isTargetName || isTargetUuid) {
