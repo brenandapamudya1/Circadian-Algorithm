@@ -8,20 +8,20 @@ Dokumen ini memuat perancangan sistem Machine Learning (ML), kebutuhan data, str
 
 Berdasarkan arsitektur fitur multi-modal sirkadian (HRV, Vocal, IMU, dan Jendela Waktu Biologis), metode ML dibagi menjadi dua kategori utama:
 
-### 🟢 A. Model Utama: Random Forest & XGBoost (Supervised Learning)
+### A. Model Utama: Random Forest & XGBoost (Supervised Learning)
 * **Peran:** Mengklasifikasikan fase mood pengguna berdasarkan vektor fitur sirkadian yang sudah divalidasi.
 * **Alasan Pemilihan:**
   * Sangat andal untuk **data tabular** dengan fitur kombinasi (Z-score HRV, Vocal, dan IMU).
   * Menghasilkan **Feature Importance** (membantu menjelaskan faktor mana yang paling dominan mengindikasikan episode mood).
   * **Ringan & Hemat Daya:** Model yang terlatih dapat dikonversi ke format **ONNX** untuk inferensi langsung (*On-Device ML*) di dalam HP pengguna secara offline.
 
-### 🟣 B. Model Tambahan: Isolation Forest (Unsupervised Anomaly Detection)
+### B. Model Tambahan: Isolation Forest (Unsupervised Anomaly Detection)
 * **Peran:** Deteksi dini risiko kecenderungan relapse/anomali tanpa membutuhkan label medis dari dokter.
 * **Alasan Pemilihan:**
   * Cukup dilatih dengan **7 hari data baseline normal** pengguna.
   * Otomatis memberi peringatan jika terdapat deviasi sirkadian yang tajam (misal: insomnia dipadu lonjakan aktivitas vokal malam hari).
 
-### 🔵 C. Model Tingkat Lanjut: LSTM / GRU (Time-Series Sequence Model)
+### C. Model Tingkat Lanjut: LSTM / GRU (Time-Series Sequence Model)
 * **Peran:** Mempelajari deret waktu biologis 24–48 jam secara beruntun.
 * **Alasan Pemilihan:** Memahami pola ketergantungan temporal jangka panjang dalam siklus harian.
 
@@ -29,7 +29,7 @@ Berdasarkan arsitektur fitur multi-modal sirkadian (HRV, Vocal, IMU, dan Jendela
 
 ## 2. Kebutuhan Data (Data Requirements)
 
-### 📊 Fitur Input (Features Vector)
+### Fitur Input (Features Vector)
 Setiap sampel/epoch data mentah dari sensor ESP32 yang telah diproses oleh `pipeline.ts` menghasilkan vektor fitur berikut:
 
 | Kategori Fitur | Nama Variabel | Deskripsi / Satuan |
@@ -60,7 +60,7 @@ Perekaman sensor dilakukan per **30 detik (1 epoch)**.
 
 ## 4. Struktur Pelabelan (Ground Truth & Labeling Strategy)
 
-### 🏷️ Target Label (Multi-Class Targets)
+### Target Label (Multi-Class Targets)
 Model dikembangkan untuk memprediksi **4 Kelas Utama**:
 
 | Kode Label | Nama Kelas | Deskripsi Kondisi Medis/Mood |
