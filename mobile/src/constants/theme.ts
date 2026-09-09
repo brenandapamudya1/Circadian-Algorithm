@@ -373,6 +373,23 @@ export const styles = StyleSheet.create({
   },
   chartWrapper: {
     alignItems: 'center',
+    position: 'relative' as const,
+  },
+  yIconColumn: {
+    position: 'absolute' as const,
+    left: 0,
+    top: 0,
+    width: 36,
+    height: 177,
+    zIndex: 1,
+  },
+  yIconRow: {
+    position: 'absolute' as const,
+    left: 6,
+    width: 20,
+    height: 20,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -411,7 +428,9 @@ export const styles = StyleSheet.create({
   legendContainer: {
     flexDirection: 'row' as const,
     justifyContent: 'center' as const,
-    gap: 20,
+    flexWrap: 'wrap' as const,
+    gap: 12,
+    rowGap: 8,
     marginBottom: 20,
   },
   legendItem: {

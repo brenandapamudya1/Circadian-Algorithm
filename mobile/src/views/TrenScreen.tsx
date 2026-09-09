@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { Laugh, Smile, Meh, Frown, Angry } from 'lucide-react-native';
 import { TrendChart } from '../components/TrendChart';
 import { StreakCounter, BadgeGrid } from '../components/GamificationBadge';
 import { DetectionHistory } from '../components/DetectionHistory';
@@ -29,13 +30,17 @@ const EmptyChartState: React.FC<{ message: string }> = ({ message }) => (
 );
 
 function classifyPhase(fv: DbFeatureVector): number {
+  // 5-level klinik: 4=Manik Berat, 3=Manik Ringan, 2=Stabil, 1=Depresi Ringan, 0=Depresi Berat
   if (fv.circadian_valid === 1) return 2;
-  if (fv.suppressed_reason) return 1;
+  if (fv.suppressed_reason) return 2;
   const vocalZ = fv.vocal_zscore ?? 0;
   const imuZ = fv.imu_zscore ?? 0;
-  if (vocalZ > 1.5 && imuZ > 1.0) return 1;
+  // Ekstrem dicek dulu agar tidak tertelan threshold ringan
+  if (vocalZ > 2.0 && imuZ > 1.5) return 4;
+  if (vocalZ < -2.0 && imuZ < -1.0) return 0;
+  if (vocalZ > 1.5 && imuZ > 1.0) return 3;
   if (vocalZ < -1.0 && imuZ < -0.5) return 1;
-  return 0;
+  return 2;
 }
 
 function aggregatePhaseByDay(vectors: DbFeatureVector[]): { values: (number | null)[]; labels: string[]; hasData: boolean; colors: string[] } {
@@ -65,9 +70,11 @@ function aggregatePhaseByDay(vectors: DbFeatureVector[]): { values: (number | nu
       const dayValues = dailyMap.get(dateStr)!;
       const avg = dayValues.length > 0 ? dayValues.reduce((a, b) => a + b, 0) / dayValues.length : 0;
       values.push(avg);
-      if (avg >= 1.5) colors.push('#388E3C');
-      else if (avg >= 0.5) colors.push('#E8A838');
-      else colors.push('#E06060');
+      if (avg >= 3.5) colors.push('#E65100');
+      else if (avg >= 2.5) colors.push('#E8A838');
+      else if (avg >= 1.5) colors.push('#388E3C');
+      else if (avg >= 0.5) colors.push('#E57373');
+      else colors.push('#C62828');
     } else {
       values.push(null);
       colors.push('#A88AD3');
@@ -102,9 +109,11 @@ function aggregatePhaseByWeek(vectors: DbFeatureVector[]): { values: (number | n
 
   const colors = values.map(v => {
     if (v === null) return '#A88AD3';
+    if (v >= 3.5) return '#E65100';
+    if (v >= 2.5) return '#E8A838';
     if (v >= 1.5) return '#388E3C';
-    if (v >= 0.5) return '#E8A838';
-    return '#E06060';
+    if (v >= 0.5) return '#E57373';
+    return '#C62828';
   });
 
   return { values, labels: WEEK_LABELS, hasData: values.some(v => v !== null), colors };
@@ -156,9 +165,11 @@ export const TrenScreen: React.FC<TrenScreenProps> = ({ historicalVectors }) => 
     const validVals = phase.values.filter((v): v is number => v !== null);
     if (validVals.length === 0) return '#388E3C';
     const avg = validVals.reduce((a, b) => a + b, 0) / validVals.length;
+    if (avg >= 3.5) return '#E65100';
+    if (avg >= 2.5) return '#E8A838';
     if (avg >= 1.5) return '#388E3C';
-    if (avg >= 0.5) return '#E8A838';
-    return '#E06060';
+    if (avg >= 0.5) return '#E57373';
+    return '#C62828';
   };
 
   return (
@@ -192,9 +203,15 @@ export const TrenScreen: React.FC<TrenScreenProps> = ({ historicalVectors }) => 
           <TrendChart
             values={phase.values}
             labels={phase.labels}
-            maxY={2}
-            gridValues={[0, 1, 2]}
-            formatYLabel={(v) => (v === 2 ? '2' : v === 1 ? '1' : '0')}
+            maxY={4}
+            gridValues={[0, 1, 2, 3, 4]}
+            yIcons={[
+              { value: 4, Icon: Laugh, color: '#E65100' },
+              { value: 3, Icon: Smile, color: '#E8A838' },
+              { value: 2, Icon: Meh, color: '#388E3C' },
+              { value: 1, Icon: Frown, color: '#E57373' },
+              { value: 0, Icon: Angry, color: '#C62828' },
+            ]}
             showTooltip={false}
             accentColor={getAccentColor()}
           />
@@ -205,16 +222,24 @@ export const TrenScreen: React.FC<TrenScreenProps> = ({ historicalVectors }) => 
 
       <View style={styles.legendContainer}>
         <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: '#E65100' }]} />
+          <Text style={styles.legendText}>Manik Berat</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: '#E8A838' }]} />
+          <Text style={styles.legendText}>Manik Ringan</Text>
+        </View>
+        <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: '#388E3C' }]} />
           <Text style={styles.legendText}>Stabil</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: '#E8A838' }]} />
-          <Text style={styles.legendText}>Manik</Text>
+          <View style={[styles.legendDot, { backgroundColor: '#E57373' }]} />
+          <Text style={styles.legendText}>Depresi Ringan</Text>
         </View>
         <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: '#E06060' }]} />
-          <Text style={styles.legendText}>Depresi</Text>
+          <View style={[styles.legendDot, { backgroundColor: '#C62828' }]} />
+          <Text style={styles.legendText}>Depresi Berat</Text>
         </View>
       </View>
 

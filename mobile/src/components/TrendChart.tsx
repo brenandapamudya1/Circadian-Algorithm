@@ -5,12 +5,19 @@ import { styles } from '../constants/theme';
 
 const { width } = Dimensions.get('window');
 
+export interface YIcon {
+  value: number;
+  Icon: React.ComponentType<any>;
+  color: string;
+}
+
 export interface TrendChartProps {
   values: (number | null)[];
   labels: string[];
   maxY: number;
   gridValues?: number[];
   formatYLabel?: (val: number) => string;
+  yIcons?: YIcon[];
   showTooltip?: boolean;
   tooltipIndex?: number;
   tooltipText?: string;
@@ -23,6 +30,7 @@ export const TrendChart: React.FC<TrendChartProps> = ({
   maxY,
   gridValues,
   formatYLabel,
+  yIcons,
   showTooltip = false,
   tooltipIndex = 3,
   tooltipText = 'Average 50 ms',
@@ -30,7 +38,8 @@ export const TrendChart: React.FC<TrendChartProps> = ({
 }) => {
   const topPadding = 35;
   const bottomPadding = 32;
-  const paddingLeft = 35;
+  const hasYIcons = !!(yIcons && yIcons.length > 0);
+  const paddingLeft = hasYIcons ? 48 : 35;
   const paddingRight = 20;
   const svgWidth = width - 80;
   const chartWidth = svgWidth - paddingLeft - paddingRight;
@@ -89,10 +98,40 @@ export const TrendChart: React.FC<TrendChartProps> = ({
 
   return (
     <View style={styles.chartWrapper}>
+      {/* Y Icons Column (lucide) — icon saja, tanpa angka */}
+      {hasYIcons && (
+        <View style={styles.yIconColumn} pointerEvents="none">
+          {yIcons!.map(({ value, Icon, color }) => {
+            const yPos = topPadding + chartHeight - (value / maxY) * chartHeight;
+            return (
+              <View key={value} style={[styles.yIconRow, { top: yPos - 10 }]}>
+                <Icon color={color} size={16} strokeWidth={2} />
+              </View>
+            );
+          })}
+        </View>
+      )}
       <Svg height={svgHeight} width={svgWidth}>
-        {/* Y Axis Grid lines & Labels */}
+        {/* Y Axis Grid lines */}
         {activeGridValues.map((gridVal) => {
           const yPos = topPadding + chartHeight - (gridVal / maxY) * chartHeight;
+          const isIconLevel = hasYIcons && yIcons!.some((y) => y.value === gridVal);
+          if (hasYIcons && !isIconLevel && formatYLabel === undefined) {
+            // Jika yIcons ada, tetap gambar grid tapi skip label angka
+            return (
+              <G key={gridVal}>
+                <Line
+                  x1={paddingLeft}
+                  y1={yPos}
+                  x2={paddingLeft + chartWidth}
+                  y2={yPos}
+                  stroke="#ECDFF6"
+                  strokeWidth="1"
+                  strokeDasharray={gridVal === 0 ? undefined : '3,3'}
+                />
+              </G>
+            );
+          }
           const labelText = formatYLabel ? formatYLabel(gridVal) : `${gridVal}`;
           return (
             <G key={gridVal}>
@@ -105,16 +144,18 @@ export const TrendChart: React.FC<TrendChartProps> = ({
                 strokeWidth="1"
                 strokeDasharray={gridVal === 0 ? undefined : '3,3'}
               />
-              <SvgText
-                x={paddingLeft - 8}
-                y={yPos + 4}
-                fill="#9E8CB0"
-                fontSize="10"
-                fontWeight="500"
-                textAnchor="end"
-              >
-                {labelText}
-              </SvgText>
+              {!hasYIcons && (
+                <SvgText
+                  x={paddingLeft - 8}
+                  y={yPos + 4}
+                  fill="#9E8CB0"
+                  fontSize="10"
+                  fontWeight="500"
+                  textAnchor="end"
+                >
+                  {labelText}
+                </SvgText>
+              )}
             </G>
           );
         })}
