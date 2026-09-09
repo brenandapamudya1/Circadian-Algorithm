@@ -3,13 +3,26 @@ import {
   updateGamificationProgress,
   getRecentFeatureVectors,
 } from '../database/queries';
+import {
+  Link,
+  Flame,
+  Star,
+  Crown,
+  Heart,
+  Gem,
+  BarChart3,
+  Lock,
+} from 'lucide-react-native';
+import type { LucideIcon } from 'lucide-react-native';
 
 export interface Badge {
   id: string;
   name: string;
   description: string;
-  icon: any;
-  lockedIcon: any;
+  Icon: LucideIcon;
+  color: string;
+  bgColor: string;
+  lockedIcon: LucideIcon;
   condition: (state: GamificationState) => boolean;
 }
 
@@ -23,14 +36,16 @@ export interface GamificationState {
   totalEpochs: number;
 }
 
-const lockedIcon = require('../../assets/BADGES/badge_locked.png');
+const lockedIcon = Lock;
 
 export const BADGES: Badge[] = [
   {
     id: 'first_connect',
     name: 'Pertama Kali',
     description: 'Berhasil menghubungkan gelang untuk pertama kali',
-    icon: require('../../assets/BADGES/badge_chain.png'),
+    Icon: Link,
+    color: '#5B8DEF',
+    bgColor: '#EEF2FF',
     lockedIcon,
     condition: (state) => state.totalDaysWithData > 0 || state.totalEpochs > 0,
   },
@@ -38,7 +53,9 @@ export const BADGES: Badge[] = [
     id: 'streak_3',
     name: 'Konsisten 3 Hari',
     description: 'Menggunakan aplikasi selama 3 hari berturut-turut',
-    icon: require('../../assets/BADGES/badge_fire.png'),
+    Icon: Flame,
+    color: '#FF6B35',
+    bgColor: '#FFF0E6',
     lockedIcon,
     condition: (state) => state.streakDays >= 3,
   },
@@ -46,7 +63,9 @@ export const BADGES: Badge[] = [
     id: 'streak_7',
     name: 'Streak Seminggu',
     description: 'Menggunakan aplikasi selama 7 hari berturut-turut',
-    icon: require('../../assets/BADGES/badge_star.png'),
+    Icon: Star,
+    color: '#E8A838',
+    bgColor: '#FFF7E0',
     lockedIcon,
     condition: (state) => state.streakDays >= 7,
   },
@@ -54,7 +73,9 @@ export const BADGES: Badge[] = [
     id: 'streak_30',
     name: 'Streak Sebulan',
     description: 'Menggunakan aplikasi selama 30 hari berturut-turut',
-    icon: require('../../assets/BADGES/badge_crown.png'),
+    Icon: Crown,
+    color: '#C9A227',
+    bgColor: '#FFF8DB',
     lockedIcon,
     condition: (state) => state.streakDays >= 30,
   },
@@ -62,7 +83,9 @@ export const BADGES: Badge[] = [
     id: 'stable_7',
     name: 'Stabil Seminggu',
     description: 'Fase stabil selama 7 hari',
-    icon: require('../../assets/BADGES/badge_green_heart.png'),
+    Icon: Heart,
+    color: '#388E3C',
+    bgColor: '#E8F5E9',
     lockedIcon,
     condition: (state) => state.stableDays >= 7,
   },
@@ -70,7 +93,9 @@ export const BADGES: Badge[] = [
     id: 'stable_30',
     name: 'Stabil Sebulan',
     description: 'Fase stabil selama 30 hari',
-    icon: require('../../assets/BADGES/badge_diamond.png'),
+    Icon: Gem,
+    color: '#7B5EA7',
+    bgColor: '#F3EEF9',
     lockedIcon,
     condition: (state) => state.stableDays >= 30,
   },
@@ -78,7 +103,9 @@ export const BADGES: Badge[] = [
     id: 'data_collector',
     name: 'Data Collector',
     description: 'Mengumpulkan 100 epoch data',
-    icon: require('../../assets/BADGES/badge_chart.png'),
+    Icon: BarChart3,
+    color: '#0288D1',
+    bgColor: '#E3F2FD',
     lockedIcon,
     condition: (state) => state.totalEpochs >= 100,
   },

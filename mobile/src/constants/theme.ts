@@ -688,6 +688,15 @@ export const styles = StyleSheet.create({
     height: 40,
     marginRight: 12,
   },
+  streakIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#FFF0E6',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginRight: 12,
+  },
   streakInfo: {
     flex: 1,
   },
@@ -736,6 +745,14 @@ export const styles = StyleSheet.create({
   },
   badgeIconImgLocked: {
     opacity: 0.4,
+  },
+  badgeIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    marginBottom: 8,
   },
   badgeName: {
     fontSize: 11,
