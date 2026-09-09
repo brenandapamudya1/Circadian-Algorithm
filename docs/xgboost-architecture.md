@@ -100,7 +100,7 @@ graph TD
 
 ---
 
-## 4. Diagram 2 — Internal XGBoost Ensemble (Pilihan A)
+## 4. Diagram 2 — Internal XGBoost Ensemble 
 
 ```mermaid
 graph LR
