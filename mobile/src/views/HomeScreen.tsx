@@ -88,11 +88,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ latestResult, bleConnect
             label="Dwell Time"
             value={latestResult ? `${latestResult.imu_dwell_min.toFixed(1)} m` : '—'}
           />
-          <MetricCard
-            icon={require('../../assets/ICON_HOMEPAGE/walking_icon.png')}
-            label="Status Alat"
-            value={bleConnectionState === 'connected' ? 'Terhubung' : 'Terputus'}
-          />
+
         </View>
 
         <AlertPanel

@@ -76,7 +76,7 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'Riwayat') {
+    if (activeTab === 'Riwayat' || activeTab === 'Tren') {
       loadHistory();
     }
   }, [activeTab]);

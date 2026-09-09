@@ -151,8 +151,8 @@ export const styles = StyleSheet.create({
   gridCard: {
     backgroundColor: colors.secondary,
     borderRadius: 18,
-    padding: 16,
-    width: (width - 55) / 2,
+    padding: 12,
+    width: (width - 70) / 3,
     marginBottom: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -772,6 +772,64 @@ export const styles = StyleSheet.create({
   },
   badgeDescLocked: {
     color: '#C0B8CC',
+  },
+
+  // ==================== RIWAYAT DI TREN ====================
+  trenRiwayatSection: {
+    marginTop: 20,
+    marginBottom: 4,
+  },
+  trenRiwayatHeader: {
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'flex-start' as const,
+    marginBottom: 14,
+  },
+  trenRiwayatTitle: {
+    fontSize: 16,
+    fontWeight: '800' as const,
+    color: colors.white,
+    marginBottom: 2,
+  },
+  trenRiwayatSubtitle: {
+    fontSize: 12,
+    fontWeight: '500' as const,
+    color: 'rgba(255,255,255,0.85)',
+  },
+  trenLihatSemuaBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderRadius: 20,
+    marginTop: 2,
+  },
+  trenLihatSemuaText: {
+    fontSize: 12,
+    fontWeight: '700' as const,
+    color: colors.white,
+  },
+  trenRiwayatCard: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    backgroundColor: colors.white,
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  trenLihatSemuaBtnFull: {
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+    marginTop: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
   },
 
   // ==================== RIWAYAT ====================

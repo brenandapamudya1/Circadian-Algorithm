@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { TrendChart } from '../components/TrendChart';
 import { StreakCounter, BadgeGrid } from '../components/GamificationBadge';
+import { DetectionHistory } from '../components/DetectionHistory';
 import {
   getGamificationState,
   checkAndUnlockBadges,
@@ -232,6 +233,8 @@ export const TrenScreen: React.FC<TrenScreenProps> = ({ historicalVectors }) => 
           </Text>
         </View>
       </View>
+
+      <DetectionHistory historicalVectors={historicalVectors} />
 
       <StreakCounter streak={gamification.streakDays} />
 
