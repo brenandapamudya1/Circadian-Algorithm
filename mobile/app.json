@@ -43,7 +43,8 @@
           ],
           "bluetoothNeverForLocationPermissionDescription": "Aplikasi Bypolizer membutuhkan Bluetooth untuk terhubung ke sensor sirkadian."
         }
-      ]
+      ],
+      "expo-status-bar"
     ]
   }
 }

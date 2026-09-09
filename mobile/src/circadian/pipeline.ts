@@ -102,12 +102,34 @@ export async function runCircadianPipeline(
 
   // ── TAHAP 1: PREPROCESSING ────────────────────────────────────────────────
   const hrvRmssd = calculateRmssd(rawData.rr);
-  // aZcr (Zero Crossing Rate) digunakan sebagai proxy vokal F0.
-  // Sanitasi rentang fisiologis: suara percakapan manusia berada di rentang 80 Hz - 300 Hz.
-  // Jika di luar rentang (seperti saat hening / aZcr rendah), fallback ke 150.0 Hz.
+  // aZcr dari ESP32 (circadian_3.ino:539-605) adalah avg ZCR per frame 64 sample @16kHz
+  // Nilai HW real: 0..32 (diam 0-2, bicara 5-20). Filter lama rawZcr>=80 selalu false -> stagnan 150.
+  // Fix: dukung dua skala (HW raw vs mock/F0 Hz) + VAD pakai aRms.
   const rawZcr = rawData.aZcr ?? 0;
-  const isHumanVoice = rawZcr >= 80 && rawZcr <= 300;
-  const vocalF0 = isHumanVoice ? rawZcr : 150.0;
+  const rawRms = rawData.aRms ?? 0;
+
+  let vocalF0: number;
+  // Backward-compatible: jika pengirim sudah dalam Hz (mock 120-250 / firmware baru), pakai langsung
+  if (rawZcr >= 80 && rawZcr <= 300) {
+    vocalF0 = rawZcr;
+  } else {
+    // Skala HW mentah: ZCR count per frame
+    const VOICE_RMS_THRESHOLD = 0.008; // silent ~0.001-0.004, speech ~0.01-0.06 (lihat [PREVIEW 3s] log)
+    const VOICE_ZCR_MIN = 3; // ZCR <3 dianggap hening/noise
+    const isSilent = rawRms < VOICE_RMS_THRESHOLD || rawZcr < VOICE_ZCR_MIN;
+    if (isSilent) {
+      vocalF0 = 150.0;
+    } else {
+      // Map ZCR 3..20 -> F0 120..280 Hz secara linear, clamp 80-300
+      // 3 -> 120 Hz, 20 -> 280 Hz (≈9.41 Hz per ZCR step)
+      const clampedZcr = Math.min(20, Math.max(VOICE_ZCR_MIN, rawZcr));
+      const mappedF0 = 120 + ((clampedZcr - VOICE_ZCR_MIN) * 160) / 17;
+      // Tambah boost halus dari RMS untuk dinamika prosodi (+0..20 Hz)
+      const rmsBoost = Math.min(20, Math.max(0, (rawRms - VOICE_RMS_THRESHOLD) * 500));
+      vocalF0 = Math.min(300, Math.max(80, mappedF0 + rmsBoost));
+    }
+  }
+  console.log(`[Pipeline] vocal mapping rawZcr=${rawZcr} rawRms=${rawRms.toFixed(4)} -> F0=${vocalF0.toFixed(1)} Hz`);
 
   // IMU dwell: kombinasi gyro (noise filtered) & accelerometer
   const imuDwell = calculateImuDwell(rawData.gyr, rawData.acc);

@@ -12,10 +12,8 @@ export const DEFAULT_USER_ID = 'user_001';
 
 /**
  * Struktur payload mentah yang dikirim oleh ESP32 (dalam bentuk JSON string).
- * 
- * Catatan: ESP32 (jam3.ino) saat ini belum mengirim `gyr` dan `aZcr`.
- * Field tersebut bersifat optional dan pipeline akan menggunakan fallback
- * jika tidak ada. Lihat next-feature.md untuk rencana upgrade ESP32.
+ * circadian_3.ino:599-605 mengirim gyr & aZcr (HW real: aZcr = avg ZCR per frame 64 sample @16kHz, range 0..32).
+ * Pipeline (pipeline.ts) akan mengkonversi skala HW ke F0 Hz 80..300.
  */
 export interface RawSensorData {
   uid: string;
@@ -23,8 +21,8 @@ export interface RawSensorData {
   gyr?: [number, number, number]; // [gx, gy, gz] (°/s) — optional, fallback ke acc
   bpm: number;
   rr: number[];                  // RR intervals (ms)
-  aRms: number;                  // Audio RMS
-  aZcr?: number;                 // Audio ZCR — optional, fallback ke 150.0
+  aRms: number;                  // Audio RMS (0.001 diam, 0.01-0.06 bicara)
+  aZcr?: number;                 // Audio ZCR avg per frame (HW: 0..32, mock: 80..300 Hz)
   bat?: number;                  // Battery percentage — optional
 }
 
@@ -444,7 +442,7 @@ class BipolyzerBleManager {
    * 
    * Handle optional fields:
    * - gyr: jika tidak ada, gunakan [0, 0, 0] (pipeline akan fallback ke accelerometer)
-   * - aZcr: jika tidak ada, gunakan 0 (pipeline akan fallback ke 150.0)
+   * - aZcr: jika tidak ada, gunakan 0 (pipeline akan fallback ke 150.0). HW raw 0..32 dikonversi di pipeline.ts
    */
   private normalizeToPipeline(sensor: RawSensorData, ts: string): PipelinePayload {
     const acc = sensor.acc || [0.0, 0.0, 0.0];
