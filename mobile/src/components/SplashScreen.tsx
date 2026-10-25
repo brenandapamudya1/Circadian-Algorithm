@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Animated, Image } from 'react-native';
+import { Animated, Image, ImageBackground } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { styles } from '../constants/theme';
 
@@ -30,11 +30,17 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ visible, onFadeCompl
   return (
     <Animated.View style={[styles.splashContainer, styles.splashAbsolute, { opacity }]}>
       <StatusBar style="dark" />
-      <Image
-        source={require('../../assets/icon_app_trans.png')}
-        style={styles.splashLogo}
-        resizeMode="contain"
-      />
+      <ImageBackground
+        source={require('../../assets/blurred/blurred_entrance_background.jpeg')}
+        style={styles.splashBg}
+        resizeMode="cover"
+      >
+        <Image
+          source={require('../../assets/icon_app_trans.png')}
+          style={styles.splashLogo}
+          resizeMode="contain"
+        />
+      </ImageBackground>
     </Animated.View>
   );
 };

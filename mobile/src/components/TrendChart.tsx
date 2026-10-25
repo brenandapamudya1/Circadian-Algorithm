@@ -36,14 +36,14 @@ export const TrendChart: React.FC<TrendChartProps> = ({
   tooltipText = 'Average 50 ms',
   accentColor = '#A88AD3',
 }) => {
-  const topPadding = 35;
-  const bottomPadding = 32;
+  const topPadding = 24;
+  const bottomPadding = 34;
   const hasYIcons = !!(yIcons && yIcons.length > 0);
-  const paddingLeft = hasYIcons ? 48 : 35;
-  const paddingRight = 20;
+  const paddingLeft = hasYIcons ? 42 : 35;
+  const paddingRight = 18;
   const svgWidth = width - 80;
   const chartWidth = svgWidth - paddingLeft - paddingRight;
-  const chartHeight = 110;
+  const chartHeight = 150;
   const svgHeight = topPadding + chartHeight + bottomPadding;
 
   const numSegments = Math.max(labels.length - 1, 1);
@@ -98,14 +98,17 @@ export const TrendChart: React.FC<TrendChartProps> = ({
 
   return (
     <View style={styles.chartWrapper}>
-      {/* Y Icons Column (lucide) — icon saja, tanpa angka */}
+      {/* Y Icons Column (lucide) — icon bulat berwarna */}
       {hasYIcons && (
         <View style={styles.yIconColumn} pointerEvents="none">
           {yIcons!.map(({ value, Icon, color }) => {
             const yPos = topPadding + chartHeight - (value / maxY) * chartHeight;
             return (
-              <View key={value} style={[styles.yIconRow, { top: yPos - 10 }]}>
-                <Icon color={color} size={16} strokeWidth={2} />
+              <View
+                key={value}
+                style={[styles.yIconRow, { top: yPos - 12, backgroundColor: color }]}
+              >
+                <Icon color="#1E1E1E" size={16} strokeWidth={2.2} />
               </View>
             );
           })}
@@ -117,17 +120,16 @@ export const TrendChart: React.FC<TrendChartProps> = ({
           const yPos = topPadding + chartHeight - (gridVal / maxY) * chartHeight;
           const isIconLevel = hasYIcons && yIcons!.some((y) => y.value === gridVal);
           if (hasYIcons && !isIconLevel && formatYLabel === undefined) {
-            // Jika yIcons ada, tetap gambar grid tapi skip label angka
             return (
               <G key={gridVal}>
                 <Line
-                  x1={paddingLeft}
+                  x1={paddingLeft - 6}
                   y1={yPos}
                   x2={paddingLeft + chartWidth}
                   y2={yPos}
-                  stroke="#ECDFF6"
-                  strokeWidth="1"
-                  strokeDasharray={gridVal === 0 ? undefined : '3,3'}
+                  stroke="#CFC8D8"
+                  strokeWidth="1.2"
+                  strokeDasharray="3,3"
                 />
               </G>
             );
@@ -136,13 +138,13 @@ export const TrendChart: React.FC<TrendChartProps> = ({
           return (
             <G key={gridVal}>
               <Line
-                x1={paddingLeft}
+                x1={paddingLeft - 6}
                 y1={yPos}
                 x2={paddingLeft + chartWidth}
                 y2={yPos}
-                stroke="#ECDFF6"
-                strokeWidth="1"
-                strokeDasharray={gridVal === 0 ? undefined : '3,3'}
+                stroke="#CFC8D8"
+                strokeWidth="1.2"
+                strokeDasharray="3,3"
               />
               {!hasYIcons && (
                 <SvgText
@@ -159,6 +161,26 @@ export const TrendChart: React.FC<TrendChartProps> = ({
             </G>
           );
         })}
+
+        {/* Solid Y-Axis and X-Axis Lines */}
+        <Line
+          x1={paddingLeft - 6}
+          y1={topPadding - 8}
+          x2={paddingLeft - 6}
+          y2={topPadding + chartHeight + 8}
+          stroke="#5A626A"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <Line
+          x1={paddingLeft - 6}
+          y1={topPadding + chartHeight + 8}
+          x2={paddingLeft + chartWidth + 8}
+          y2={topPadding + chartHeight + 8}
+          stroke="#5A626A"
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
 
         {/* Line Segments */}
         {segments.map((seg, sIdx) => {

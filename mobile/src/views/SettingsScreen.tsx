@@ -303,7 +303,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
   };
 
   return (
-    <View style={styles.settingsOverlay}>
+    <View style={[styles.settingsOverlay, { backgroundColor: 'transparent' }]}>
       <ScrollView
         contentContainerStyle={styles.settingsScrollContent}
         showsVerticalScrollIndicator={false}
@@ -577,11 +577,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
           </View>
         ) : (
           <TouchableOpacity
-            style={styles.addReminderBtn}
+            style={[styles.addReminderBtn, { borderColor: '#FFFFFF' }]}
             onPress={() => setShowAddForm(true)}
             activeOpacity={0.7}
           >
-            <Text style={styles.addReminderBtnText}>+ Tambah Pengingat</Text>
+            <Text style={[styles.addReminderBtnText, { color: '#FFFFFF' }]}>+ Tambah Pengingat</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -658,11 +658,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
           </View>
         ) : (
           <TouchableOpacity
-            style={styles.addReminderBtn}
+            style={[styles.addReminderBtn, { borderColor: '#FFFFFF' }]}
             onPress={() => setShowAddContactForm(true)}
             activeOpacity={0.7}
           >
-            <Text style={styles.addReminderBtnText}>+ Tambah Kontak RS Darurat</Text>
+            <Text style={[styles.addReminderBtnText, { color: '#FFFFFF' }]}>+ Tambah Kontak RS Darurat</Text>
           </TouchableOpacity>
         )}
       </View>

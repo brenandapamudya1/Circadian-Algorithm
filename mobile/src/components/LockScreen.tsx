@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Image, Animated, SafeAreaView } from 'react-native';
+import { View, Text, TouchableOpacity, Image, ImageBackground, Animated, SafeAreaView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { getPin } from '../database/queries';
 import { styles } from '../constants/theme';
@@ -61,67 +61,73 @@ export const LockScreen: React.FC<LockScreenProps> = ({ isUnlocked, onUnlock }) 
 
   return (
     <Animated.View style={[styles.lockContainerAbsolute, { opacity: lockOpacity }]}>
-      <SafeAreaView style={{ flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' }}>
-        <StatusBar style="dark" />
+      <ImageBackground
+        source={require('../../assets/blurred/blurred_entrance_background.jpeg')}
+        style={styles.lockBg}
+        resizeMode="cover"
+      >
+        <SafeAreaView style={{ flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' }}>
+          <StatusBar style="dark" />
 
-        <Image
-          source={require('../../assets/icon_app_trans.png')}
-          style={styles.lockLogo}
-          resizeMode="contain"
-        />
+          <Image
+            source={require('../../assets/icon_app_trans.png')}
+            style={styles.lockLogo}
+            resizeMode="contain"
+          />
 
-        <Text style={styles.lockTitle}>Masukkan PIN</Text>
-        <Text style={styles.lockSubtitle}>Masukkan 4 digit PIN untuk melanjutkan</Text>
+          <Text style={styles.lockTitle}>Masukkan PIN</Text>
+          <Text style={styles.lockSubtitle}>Masukkan 4 digit PIN untuk melanjutkan</Text>
 
-        <View style={styles.lockDotsRow}>
-          {[0, 1, 2, 3].map((i) => (
-            <View
-              key={i}
-              style={[
-                styles.lockDot,
-                pinInput.length > i ? styles.lockDotFilled : styles.lockDotEmpty,
-                pinError ? styles.lockDotError : null,
-              ]}
-            />
-          ))}
-        </View>
+          <View style={styles.lockDotsRow}>
+            {[0, 1, 2, 3].map((i) => (
+              <View
+                key={i}
+                style={[
+                  styles.lockDot,
+                  pinInput.length > i ? styles.lockDotFilled : styles.lockDotEmpty,
+                  pinError ? styles.lockDotError : null,
+                ]}
+              />
+            ))}
+          </View>
 
-        {pinError && <Text style={styles.lockErrorText}>PIN salah, coba lagi</Text>}
+          {pinError && <Text style={styles.lockErrorText}>PIN salah, coba lagi</Text>}
 
-        <View style={styles.lockKeypad}>
-          {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'].map((key, idx) => {
-            if (key === '') {
-              return <View key={idx} style={styles.lockKeyEmpty} />;
-            }
-            if (key === 'del') {
+          <View style={styles.lockKeypad}>
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'del'].map((key, idx) => {
+              if (key === '') {
+                return <View key={idx} style={styles.lockKeyEmpty} />;
+              }
+              if (key === 'del') {
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    style={styles.lockKey}
+                    onPress={handlePinDelete}
+                    activeOpacity={0.6}
+                  >
+                    <Image
+                      source={require('../../assets/lockscreen/delete_icon.png')}
+                      style={styles.lockKeyDelIcon}
+                      resizeMode="contain"
+                    />
+                  </TouchableOpacity>
+                );
+              }
               return (
                 <TouchableOpacity
                   key={idx}
                   style={styles.lockKey}
-                  onPress={handlePinDelete}
+                  onPress={() => handlePinPress(key)}
                   activeOpacity={0.6}
                 >
-                  <Image
-                    source={require('../../assets/lockscreen/delete_icon.png')}
-                    style={styles.lockKeyDelIcon}
-                    resizeMode="contain"
-                  />
+                  <Text style={styles.lockKeyText}>{key}</Text>
                 </TouchableOpacity>
               );
-            }
-            return (
-              <TouchableOpacity
-                key={idx}
-                style={styles.lockKey}
-                onPress={() => handlePinPress(key)}
-                activeOpacity={0.6}
-              >
-                <Text style={styles.lockKeyText}>{key}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </SafeAreaView>
+            })}
+          </View>
+        </SafeAreaView>
+      </ImageBackground>
     </Animated.View>
   );
 };

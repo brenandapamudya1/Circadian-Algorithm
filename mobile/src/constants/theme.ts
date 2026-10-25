@@ -15,6 +15,7 @@ export const colors = {
   textMedium: '#5A4570',
   textLight: '#8A7B9C',
   white: '#FFFFFF',
+  black: '#000000',
   success: '#388E3C',
   successBg: '#F0FFF4',
   successBorder: '#C8FFD4',
@@ -51,8 +52,17 @@ export const styles = StyleSheet.create({
   },
 
   // ==================== BERANDA ====================
+  homeBgImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: '100%',
+    height: '100%',
+  },
   header: {
-    backgroundColor: colors.lightPurple,
+    backgroundColor: '#826A9B',
     paddingTop: 45,
     paddingBottom: 35,
     paddingHorizontal: 24,
@@ -60,6 +70,11 @@ export const styles = StyleSheet.create({
     borderBottomRightRadius: 32,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 5,
   },
   headerTitle: {
     color: colors.white,
@@ -91,7 +106,7 @@ export const styles = StyleSheet.create({
     marginTop: 20,
   },
   phaseCard: {
-    backgroundColor: colors.secondary,
+    backgroundColor: '#7D6598',
     borderRadius: 20,
     padding: 20,
     flexDirection: 'row',
@@ -100,9 +115,9 @@ export const styles = StyleSheet.create({
     marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.2,
     shadowRadius: 6,
-    elevation: 4,
+    elevation: 5,
   },
   phaseCardAlert: {
     backgroundColor: '#FF8A8A',
@@ -149,16 +164,16 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
   },
   gridCard: {
-    backgroundColor: colors.secondary,
+    backgroundColor: '#7D6598',
     borderRadius: 18,
     padding: 12,
     width: (width - 70) / 3,
     marginBottom: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.2,
     shadowRadius: 5,
-    elevation: 3,
+    elevation: 4,
   },
   gridIconImg: {
     width: 28,
@@ -178,7 +193,7 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
   },
   alertCard: {
-    backgroundColor: colors.secondary,
+    backgroundColor: '#7D6598',
     borderRadius: 20,
     padding: 20,
     flexDirection: 'row',
@@ -186,9 +201,9 @@ export const styles = StyleSheet.create({
     marginBottom: 25,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.2,
     shadowRadius: 5,
-    elevation: 3,
+    elevation: 4,
   },
   alertCardAnomaly: {
     backgroundColor: colors.errorBg,
@@ -300,21 +315,20 @@ export const styles = StyleSheet.create({
     paddingBottom: 15,
   },
   trenHeaderTitle: {
-    color: colors.white,
+    color: colors.black,
     fontSize: 26,
     fontWeight: '800',
     textAlign: 'center',
-    marginTop: -30,
+    marginTop: -10,
     marginBottom: 4,
     marginLeft: -200,
   },
   trenHeaderSubtitle: {
-    color: colors.white,
+    color: colors.textMedium,
     fontSize: 18,
-    fontWeight: '400',
+    fontWeight: '500',
     textAlign: 'center',
     marginLeft: -188,
-    opacity: 0.9,
   },
   segmentedControl: {
     flexDirection: 'row',
@@ -380,14 +394,17 @@ export const styles = StyleSheet.create({
     left: 0,
     top: 0,
     width: 36,
-    height: 177,
+    height: 220,
     zIndex: 1,
   },
   yIconRow: {
     position: 'absolute' as const,
-    left: 6,
-    width: 20,
-    height: 20,
+    left: 4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#1E1E1E',
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
   },
@@ -427,16 +444,27 @@ export const styles = StyleSheet.create({
   // ==================== LEGEND ====================
   legendContainer: {
     flexDirection: 'row' as const,
-    justifyContent: 'center' as const,
+    justifyContent: 'space-between' as const,
     flexWrap: 'wrap' as const,
-    gap: 12,
-    rowGap: 8,
+    rowGap: 12,
     marginBottom: 20,
+    paddingHorizontal: 4,
   },
   legendItem: {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
+    width: '32%' as const,
     gap: 6,
+  },
+  legendIconBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#1E1E1E',
+    justifyContent: 'center' as const,
+    alignItems: 'center' as const,
+    flexShrink: 0,
   },
   legendDot: {
     width: 10,
@@ -444,9 +472,10 @@ export const styles = StyleSheet.create({
     borderRadius: 5,
   },
   legendText: {
-    fontSize: 12,
-    fontWeight: '600' as const,
-    color: colors.textMedium,
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: colors.darkPurple,
+    flexShrink: 1,
   },
 
   // ==================== BOTTOM NAV ====================
@@ -505,7 +534,7 @@ export const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 30,
     fontWeight: '800',
-    marginTop: -20,
+    marginTop: -15,
     marginBottom: 24,
   },
   profileCard: {
@@ -538,7 +567,7 @@ export const styles = StyleSheet.create({
     opacity: 0.85,
   },
   settingSection: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: 'rgba(76, 48, 122, 0.55)',
     borderRadius: 18,
     paddingHorizontal: 16,
     paddingBottom: 16,
@@ -674,7 +703,7 @@ export const styles = StyleSheet.create({
   // ==================== SETTINGS OVERLAY ====================
   settingsOverlay: {
     flex: 1,
-    backgroundColor: colors.primary,
+    backgroundColor: 'transparent',
   },
   settingsBackBtn: {
     paddingVertical: 8,
@@ -807,25 +836,25 @@ export const styles = StyleSheet.create({
   trenRiwayatTitle: {
     fontSize: 16,
     fontWeight: '800' as const,
-    color: colors.white,
+    color: colors.darkPurple,
     marginBottom: 2,
   },
   trenRiwayatSubtitle: {
     fontSize: 12,
     fontWeight: '500' as const,
-    color: 'rgba(255,255,255,0.85)',
+    color: colors.textMedium,
   },
   trenLihatSemuaBtn: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: 'rgba(255,255,255,0.22)',
+    backgroundColor: 'rgba(76, 48, 122, 0.14)',
     borderRadius: 20,
     marginTop: 2,
   },
   trenLihatSemuaText: {
     fontSize: 12,
     fontWeight: '700' as const,
-    color: colors.white,
+    color: colors.darkPurple,
   },
   trenRiwayatCard: {
     flexDirection: 'row' as const,
@@ -927,6 +956,13 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  splashBg: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   splashLogo: {
     width: width * 0.62,
     height: width * 0.85,
@@ -946,10 +982,11 @@ export const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   eduSectionTitle: {
-    fontSize: 18,
+    fontSize: 25,
     fontWeight: '800',
     color: colors.darkPurple,
-    marginBottom: 2,
+    marginTop: -18,
+    marginBottom: 5,
   },
   eduSectionSubtitle: {
     fontSize: 12,
@@ -1081,6 +1118,11 @@ export const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: colors.white,
     zIndex: 100,
+  },
+  lockBg: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
   },
   lockLogo: {
     width: 90,
@@ -1223,7 +1265,7 @@ export const styles = StyleSheet.create({
     marginTop: 16,
     paddingVertical: 10,
     borderWidth: 1.5,
-    borderColor: colors.accent,
+    borderColor: colors.white,
     borderStyle: 'dashed',
     borderRadius: 10,
     alignItems: 'center',
@@ -1232,7 +1274,7 @@ export const styles = StyleSheet.create({
   addReminderBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: colors.accent,
+    color: colors.white,
   },
   addReminderForm: {
     marginTop: 16,

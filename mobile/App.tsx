@@ -121,6 +121,34 @@ function AppContent() {
     <>
       {isUnlocked && (
         <SafeAreaView style={[styles.container, bgStyle]}>
+          {activeTab === 'Beranda' && (
+            <Image
+              source={require('./assets/blurred/blurred_home_background.jpeg')}
+              style={styles.homeBgImage}
+              resizeMode="cover"
+            />
+          )}
+          {activeTab === 'Tren' && (
+            <Image
+              source={require('./assets/blurred/blurred_tren_background.jpeg')}
+              style={styles.homeBgImage}
+              resizeMode="cover"
+            />
+          )}
+          {activeTab === 'Riwayat' && (
+            <Image
+              source={require('./assets/blurred/blurred_history_background.jpeg')}
+              style={styles.homeBgImage}
+              resizeMode="cover"
+            />
+          )}
+          {activeTab === 'Pengaturan' && (
+            <Image
+              source={require('./assets/blurred/blurred_settings2_background.jpeg')}
+              style={styles.homeBgImage}
+              resizeMode="cover"
+            />
+          )}
           {activeTab === 'Pengaturan' ? (
             <SettingsScreen
               bleConnectionState={bleConnectionState}
