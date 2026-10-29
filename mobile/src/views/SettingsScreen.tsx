@@ -21,6 +21,8 @@ import {
   DbReminder,
 } from '../database/queries';
 import { styles, colors } from '../constants/theme';
+import { Download } from 'lucide-react-native';
+import { exportRecordedDataToCsv } from '../services/exportService';
 
 interface SettingsScreenProps {
   bleConnectionState: ConnectionState;
@@ -59,6 +61,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
 
   const [dataCount, setDataCount] = useState(0);
   const [oldestData, setOldestData] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const [username, setUsernameState] = useState('User');
   const [showPinForm, setShowPinForm] = useState(false);
@@ -179,6 +182,30 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
         },
       ]
     );
+  };
+
+  const handleExportRecordedData = async () => {
+    if (dataCount === 0) {
+      Alert.alert(
+        'Belum Ada Data Tersimpan',
+        'Database lokal Anda belum memiliki epoch yang tersimpan. Hubungkan gelang untuk mulai merekam data sirkadian.'
+      );
+      return;
+    }
+
+    try {
+      setIsExporting(true);
+      const res = await exportRecordedDataToCsv();
+      if (res.success) {
+        Alert.alert('Sukses', `Berhasil mengekstrak ${res.count} epoch data lokal ke file CSV.`);
+      } else {
+        Alert.alert('Gagal', res.message);
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Gagal mengekspor data rekaman.');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const loadEmergencyContacts = async () => {
@@ -458,6 +485,25 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
             </View>
           </View>
         )}
+
+        <TouchableOpacity
+          style={styles.settingRow}
+          onPress={handleExportRecordedData}
+          disabled={isExporting}
+          activeOpacity={0.7}
+        >
+          <View style={styles.settingRowLeft}>
+            <Text style={[styles.settingRowTitle, { color: colors.primary }]}>
+              Unduh Dataset (.csv)
+            </Text>
+            <Text style={styles.settingRowSub}>
+              {dataCount > 0
+                ? `${dataCount} epoch tersimpan di lokal (format 15 kolom)`
+                : 'Belum ada data rekaman tersimpan'}
+            </Text>
+          </View>
+          <Download size={20} color={colors.primary} />
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.settingRow, styles.settingRowNoBorder]}

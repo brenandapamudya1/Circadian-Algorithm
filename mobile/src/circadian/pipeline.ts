@@ -134,6 +134,13 @@ export async function runCircadianPipeline(
   // IMU dwell: kombinasi gyro (noise filtered) & accelerometer
   const imuDwell = calculateImuDwell(rawData.gyr, rawData.acc);
 
+  // IMU SVM (Signal Vector Magnitude) in g = sqrt(ax^2 + ay^2 + az^2) / 9.81
+  let imuSvmG = 1.0;
+  if (rawData.acc && rawData.acc.length >= 3) {
+    const accMag = Math.sqrt(rawData.acc[0] ** 2 + rawData.acc[1] ** 2 + rawData.acc[2] ** 2);
+    imuSvmG = Number((accMag / 9.81).toFixed(3));
+  }
+
   const preprocessed: RawEpochFeatures = {
     timestamp,
     user_id: rawData.uid || 'local_user',
@@ -162,6 +169,7 @@ export async function runCircadianPipeline(
     imu_zscore: normalized.imu_normalized.zscore,
     circadian_valid: gatedResult.circadian_valid ? 1 : 0,
     suppressed_reason: gatedResult.suppressed_reason,
+    imu_svm_g: imuSvmG,
   };
 
   await insertFeatureVector(dbVector);

@@ -72,6 +72,7 @@ export async function initDatabase(): Promise<void> {
           imu_zscore REAL,
           circadian_valid INTEGER NOT NULL,  -- 0 = False, 1 = True
           suppressed_reason TEXT,
+          imu_svm_g REAL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -129,6 +130,13 @@ export async function initDatabase(): Promise<void> {
     `);
 
     console.log('[SQLite] Tabel berhasil diinisialisasi.');
+
+    // Safe migration: pastikan kolom imu_svm_g ada pada tabel feature_vectors yang sudah ada
+    try {
+      await db.execAsync('ALTER TABLE feature_vectors ADD COLUMN imu_svm_g REAL;');
+    } catch (_) {
+      // Abaikan jika kolom sudah ada
+    }
 
     // 2. Seed default circadian baselines jika masih kosong
     const countResult = await db.getFirstAsync<{ count: number }>(

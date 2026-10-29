@@ -25,6 +25,7 @@ export interface DbFeatureVector {
   imu_zscore: number | null;
   circadian_valid: number; // 0 atau 1
   suppressed_reason: string | null;
+  imu_svm_g?: number | null;
   created_at?: string;
 }
 
@@ -127,8 +128,9 @@ export async function insertFeatureVector(fv: DbFeatureVector): Promise<void> {
       hrv_rmssd, hrv_zscore, 
       vocal_f0, vocal_zscore, 
       imu_dwell_min, imu_zscore, 
-      circadian_valid, suppressed_reason
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+      circadian_valid, suppressed_reason,
+      imu_svm_g
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
     [
       fv.epoch_id,
       fv.timestamp,
@@ -141,6 +143,7 @@ export async function insertFeatureVector(fv: DbFeatureVector): Promise<void> {
       fv.imu_zscore,
       fv.circadian_valid,
       fv.suppressed_reason,
+      fv.imu_svm_g ?? null,
     ]
   );
 }
@@ -151,6 +154,14 @@ export async function getRecentFeatureVectors(limit: number = 50): Promise<DbFea
   return db.getAllAsync<DbFeatureVector>(
     'SELECT * FROM feature_vectors ORDER BY timestamp DESC LIMIT ?;',
     [limit]
+  );
+}
+
+export async function getAllFeatureVectors(): Promise<DbFeatureVector[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.getAllAsync<DbFeatureVector>(
+    'SELECT * FROM feature_vectors ORDER BY timestamp ASC;'
   );
 }
 

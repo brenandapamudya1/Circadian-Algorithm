@@ -46,7 +46,16 @@ export const RiwayatScreen: React.FC<RiwayatScreenProps> = () => {
       ) : (
         <View style={styles.eduDetail}>
           <TouchableOpacity
-            style={styles.eduDetailBack}
+            style={[
+              styles.eduDetailBack,
+              {
+                backgroundColor: '#FFFFFF',
+                paddingHorizontal: 14,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: '#E4D8F2',
+              },
+            ]}
             onPress={() => setSelectedArticle(null)}
           >
             <Text style={styles.eduDetailBackText}>← Kembali</Text>
@@ -58,7 +67,18 @@ export const RiwayatScreen: React.FC<RiwayatScreenProps> = () => {
             resizeMode="cover"
           />
 
-          <View style={styles.eduDetailBody}>
+          <View
+            style={[
+              styles.eduDetailBody,
+              {
+                backgroundColor: '#FFFFFF',
+                borderRadius: 16,
+                padding: 18,
+                borderWidth: 1,
+                borderColor: '#E4D8F2',
+              },
+            ]}
+          >
             <Text style={styles.eduDetailTitle}>{selectedArticle.title}</Text>
 
             <View style={styles.eduDetailSourceRow}>
