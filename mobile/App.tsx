@@ -112,8 +112,8 @@ function AppContent() {
   }, []);
 
   const bgStyle =
-    activeTab === 'Tren' ? styles.bgTren
-    : activeTab === 'Riwayat' ? styles.bgRiwayat
+    activeTab === 'Tren' ? styles.bgRiwayat
+    : activeTab === 'Riwayat' ? styles.bgTren
     : activeTab === 'Pengaturan' ? styles.bgPengaturan
     : styles.bgBeranda;
 
@@ -130,14 +130,14 @@ function AppContent() {
           )}
           {activeTab === 'Tren' && (
             <Image
-              source={require('./assets/blurred/blurred_tren_background.jpeg')}
+              source={require('./assets/blurred/blurred_history_background.jpeg')}
               style={styles.homeBgImage}
               resizeMode="cover"
             />
           )}
           {activeTab === 'Riwayat' && (
             <Image
-              source={require('./assets/blurred/blurred_history_background.jpeg')}
+              source={require('./assets/blurred/blurred_tren_background.jpeg')}
               style={styles.homeBgImage}
               resizeMode="cover"
             />
@@ -168,11 +168,11 @@ function AppContent() {
               )}
 
               {activeTab === 'Tren' && (
-                <TrenScreen historicalVectors={historicalVectors} />
+                <RiwayatScreen historicalVectors={historicalVectors} />
               )}
 
               {activeTab === 'Riwayat' && (
-                <RiwayatScreen historicalVectors={historicalVectors} />
+                <TrenScreen historicalVectors={historicalVectors} />
               )}
             </ScrollView>
           )}
