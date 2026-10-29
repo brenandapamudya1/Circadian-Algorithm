@@ -138,14 +138,52 @@ export async function initDatabase(): Promise<void> {
       // Abaikan jika kolom sudah ada
     }
 
-    // 2. Seed default circadian baselines jika masih kosong
+    // Safe migration: perbarui baseline usang (misal dwell_mean >= 1.0 dari versi lawas 10.0)
+    try {
+      await db.runAsync(`
+        UPDATE circadian_baselines 
+        SET 
+          imu_dwell_mean = CASE 
+            WHEN window_name = 'MORNING' THEN 0.30
+            WHEN window_name = 'AFTERNOON' THEN 0.36
+            WHEN window_name = 'EVENING' THEN 0.35
+            ELSE 0.31
+          END,
+          imu_dwell_std = CASE 
+            WHEN window_name = 'MORNING' THEN 0.25
+            WHEN window_name = 'AFTERNOON' THEN 0.31
+            WHEN window_name = 'EVENING' THEN 0.28
+            ELSE 0.30
+          END,
+          hrv_rmssd_mean = CASE 
+            WHEN window_name = 'MORNING' THEN 47.14
+            WHEN window_name = 'AFTERNOON' THEN 45.84
+            WHEN window_name = 'EVENING' THEN 46.11
+            ELSE 45.85
+          END,
+          hrv_rmssd_std = 11.0,
+          vocal_f0_mean = 160.0,
+          vocal_f0_std = 30.0
+        WHERE imu_dwell_mean >= 1.0;
+      `);
+    } catch (_) {
+      // Abaikan jika migrasi baseline belum diperlukan
+    }
+
+    // 2. Seed default circadian baselines jika masih kosong (sesuai BIPOLYZER_HRV_XGBoost_Dataset_Realistic)
     const countResult = await db.getFirstAsync<{ count: number }>(
       'SELECT COUNT(*) as count FROM circadian_baselines;'
     );
     
     if (countResult && countResult.count === 0) {
       console.log('[SQLite] Melakukan seeding data awal untuk circadian_baselines...');
-      const defaultWindows = ['NOCTURNAL', 'MORNING', 'AFTERNOON', 'EVENING', 'PRE-SLEEP'];
+      const defaultWindows = [
+        { name: 'NOCTURNAL', hrvMean: 45.85, hrvStd: 11.24, vocalMean: 161.69, vocalStd: 31.28, imuMean: 0.31, imuStd: 0.30 },
+        { name: 'MORNING', hrvMean: 47.14, hrvStd: 10.60, vocalMean: 158.25, vocalStd: 27.58, imuMean: 0.30, imuStd: 0.25 },
+        { name: 'AFTERNOON', hrvMean: 45.84, hrvStd: 10.96, vocalMean: 161.80, vocalStd: 32.76, imuMean: 0.36, imuStd: 0.31 },
+        { name: 'EVENING', hrvMean: 46.11, hrvStd: 11.66, vocalMean: 162.14, vocalStd: 34.42, imuMean: 0.35, imuStd: 0.28 },
+        { name: 'PRE-SLEEP', hrvMean: 45.85, hrvStd: 11.24, vocalMean: 161.69, vocalStd: 31.28, imuMean: 0.31, imuStd: 0.30 },
+      ];
       
       for (const w of defaultWindows) {
         await db.runAsync(
@@ -154,8 +192,8 @@ export async function initDatabase(): Promise<void> {
             hrv_rmssd_mean, hrv_rmssd_std, 
             vocal_f0_mean, vocal_f0_std, 
             imu_dwell_mean, imu_dwell_std
-          ) VALUES (?, 50.0, 10.0, 150.0, 20.0, 10.0, 2.0);`,
-          [w]
+          ) VALUES (?, ?, ?, ?, ?, ?, ?);`,
+          [w.name, w.hrvMean, w.hrvStd, w.vocalMean, w.vocalStd, w.imuMean, w.imuStd]
         );
       }
       console.log('[SQLite] Seeding baselines selesai.');

@@ -83,15 +83,15 @@ export async function normalizeFeatures(
   // 2. Dapatkan baseline personal dari SQLite untuk window tersebut
   let baseline = await getBaselineFromDb(window);
   if (!baseline) {
-    // Fallback default
+    // Fallback default sesuai karakteristik dataset referensi realistis
     baseline = {
       window_name: window,
-      hrv_rmssd_mean: 50.0,
-      hrv_rmssd_std: 10.0,
-      vocal_f0_mean: 150.0,
-      vocal_f0_std: 20.0,
-      imu_dwell_mean: 10.0,
-      imu_dwell_std: 2.0,
+      hrv_rmssd_mean: 47.0,
+      hrv_rmssd_std: 11.0,
+      vocal_f0_mean: 160.0,
+      vocal_f0_std: 30.0,
+      imu_dwell_mean: 0.33,
+      imu_dwell_std: 0.28,
     };
   }
 
@@ -101,8 +101,8 @@ export async function normalizeFeatures(
   // Helper normalisasi satu domain
   const normalize = (value: number, mean: number, std: number): NormalizedDomainFeature => {
     const finalStd = std === 0 ? 1.0 : std;
-    // Z-Score hanya dihitung jika sudah terkalibrasi (>= 7 hari), jika belum z-score bernilai 0.0
-    const zscore = isCalibrated ? (value - mean) / finalStd : 0.0;
+    // Z-Score selalu dihitung secara matematis terhadap baseline window aktif
+    const zscore = (value - mean) / finalStd;
     return {
       value,
       baseline_mean: mean,
