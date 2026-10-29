@@ -91,6 +91,28 @@ function base64ToUtf8(base64: string): string {
   }
 }
 
+/**
+ * Base64 encoder mandiri untuk mengonversi string UTF-8 menjadi string base64 untuk react-native-ble-plx.
+ * Menggantikan btoa yang tidak tersedia pada runtime Hermes di React Native Android.
+ */
+function utf8ToBase64(str: string): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+  let output = '';
+  for (let i = 0; i < str.length; i += 3) {
+    const b1 = str.charCodeAt(i);
+    const b2 = i + 1 < str.length ? str.charCodeAt(i + 1) : NaN;
+    const b3 = i + 2 < str.length ? str.charCodeAt(i + 2) : NaN;
+
+    const enc1 = b1 >> 2;
+    const enc2 = ((b1 & 3) << 4) | (isNaN(b2) ? 0 : b2 >> 4);
+    const enc3 = isNaN(b2) ? 64 : ((b2 & 15) << 2) | (isNaN(b3) ? 0 : b3 >> 6);
+    const enc4 = isNaN(b3) ? 64 : b3 & 63;
+
+    output += chars.charAt(enc1) + chars.charAt(enc2) + chars.charAt(enc3) + chars.charAt(enc4);
+  }
+  return output;
+}
+
 // ── BLE MANAGER CLASS ────────────────────────────────────────────────────────
 
 class BipolyzerBleManager {
@@ -516,20 +538,43 @@ class BipolyzerBleManager {
 
   /**
    * Mengirim timestamp phone ke ESP32 untuk sinkronisasi jam OLED.
+   * Mendukung pemanggilan otomatis saat koneksi BLE terbentuk maupun manual dari UI.
    */
-  private async syncTimeToESP(device: Device): Promise<void> {
+  public async syncTimeToESP(device?: Device): Promise<boolean> {
+    const targetDevice = device || this.connectedDevice;
+    if (!targetDevice) {
+      console.warn('[BLE] Tidak ada perangkat terhubung untuk sync jam.');
+      return false;
+    }
+
     try {
       const now = new Date();
       const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-      const base64Time = btoa(timeStr);
-      await device.writeCharacteristicWithResponseForService(
-        SERVICE_UUID,
-        TIME_CHAR_UUID,
-        base64Time,
-      );
-      console.log(`[BLE] Time sync terkirim: ${timeStr}`);
+      const base64Time = utf8ToBase64(timeStr);
+
+      // Jeda 300ms agar GATT channel siap
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      try {
+        await targetDevice.writeCharacteristicWithResponseForService(
+          SERVICE_UUID,
+          TIME_CHAR_UUID,
+          base64Time,
+        );
+      } catch (writeRespErr) {
+        console.warn('[BLE] Write with response gagal, mencoba without response:', writeRespErr);
+        await targetDevice.writeCharacteristicWithoutResponseForService(
+          SERVICE_UUID,
+          TIME_CHAR_UUID,
+          base64Time,
+        );
+      }
+
+      console.log(`[BLE] Time sync berhasil terkirim ke ESP: ${timeStr} (base64: ${base64Time})`);
+      return true;
     } catch (error) {
       console.warn('[BLE] Gagal kirim time sync:', error);
+      return false;
     }
   }
 

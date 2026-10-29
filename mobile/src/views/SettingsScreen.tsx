@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Image, Linking, Alert, ScrollView } from 'react-native';
-import { ConnectionState } from '../services/bleManager';
+import { bleManager, ConnectionState } from '../services/bleManager';
 import { notificationService } from '../services/notificationService';
 import {
   getEmergencyContacts,
@@ -205,6 +205,29 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
       Alert.alert('Error', err?.message || 'Gagal mengekspor data rekaman.');
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const [isSyncingTime, setIsSyncingTime] = useState(false);
+
+  const handleSyncTime = async () => {
+    if (bleConnectionState !== 'connected') {
+      Alert.alert('Perangkat Belum Terhubung', 'Hubungkan gelang Circadian terlebih dahulu untuk menyinkronkan jam.');
+      return;
+    }
+
+    try {
+      setIsSyncingTime(true);
+      const success = await bleManager.syncTimeToESP();
+      if (success) {
+        Alert.alert('Sukses', 'Jam gelang berhasil disinkronkan dengan waktu HP.');
+      } else {
+        Alert.alert('Gagal', 'Tidak dapat mengirim waktu ke gelang. Pastikan gelang berada di dekat ponsel.');
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Gagal mengirim waktu ke gelang.');
+    } finally {
+      setIsSyncingTime(false);
     }
   };
 
@@ -463,6 +486,23 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
             {bleConnectionState === 'connected' ? '✓' : '⑂'}
           </Text>
         </TouchableOpacity>
+
+        {bleConnectionState === 'connected' && (
+          <TouchableOpacity
+            style={styles.settingRow}
+            onPress={handleSyncTime}
+            disabled={isSyncingTime}
+            activeOpacity={0.7}
+          >
+            <View style={styles.settingRowLeft}>
+              <Text style={styles.settingRowTitle}>Sinkronkan Jam Gelang</Text>
+              <Text style={styles.settingRowSub}>
+                {isSyncingTime ? 'Mengirim waktu ke gelang...' : 'Update jam OLED gelang ke waktu HP sekarang'}
+              </Text>
+            </View>
+            <Text style={styles.settingRowIcon}>🕒</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.settingSection}>
