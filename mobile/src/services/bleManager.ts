@@ -538,43 +538,72 @@ class BipolyzerBleManager {
 
   /**
    * Mengirim timestamp phone ke ESP32 untuk sinkronisasi jam OLED.
-   * Mendukung pemanggilan otomatis saat koneksi BLE terbentuk maupun manual dari UI.
+   * Melakukan discovery dinamis terhadap Service & Karakteristik untuk memastikan kompatibilitas handle GATT Android.
    */
-  public async syncTimeToESP(device?: Device): Promise<boolean> {
+  public async syncTimeToESP(device?: Device): Promise<{ success: boolean; message: string }> {
     const targetDevice = device || this.connectedDevice;
     if (!targetDevice) {
-      console.warn('[BLE] Tidak ada perangkat terhubung untuk sync jam.');
-      return false;
+      const msg = 'Tidak ada perangkat gelang yang terhubung.';
+      console.warn(`[BLE] ${msg}`);
+      return { success: false, message: msg };
     }
 
     try {
+      const isConnected = await targetDevice.isConnected();
+      if (!isConnected) {
+        return { success: false, message: 'Koneksi Bluetooth terputus. Silakan hubungkan kembali gelang.' };
+      }
+
+      // Pastikan seluruh service dan karakteristik telah terbaca
+      await targetDevice.discoverAllServicesAndCharacteristics();
+
       const now = new Date();
       const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       const base64Time = utf8ToBase64(timeStr);
 
-      // Jeda 300ms agar GATT channel siap
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      const normalizeUuid = (uuid: string) => uuid.toLowerCase().replace(/[^a-f0-9]/g, '');
+      const targetServiceNorm = normalizeUuid(SERVICE_UUID);
+      const targetCharNorm = normalizeUuid(TIME_CHAR_UUID);
 
-      try {
-        await targetDevice.writeCharacteristicWithResponseForService(
-          SERVICE_UUID,
-          TIME_CHAR_UUID,
-          base64Time,
-        );
-      } catch (writeRespErr) {
-        console.warn('[BLE] Write with response gagal, mencoba without response:', writeRespErr);
-        await targetDevice.writeCharacteristicWithoutResponseForService(
-          SERVICE_UUID,
-          TIME_CHAR_UUID,
-          base64Time,
-        );
+      // Cari service yang sesuai
+      const services = await targetDevice.services();
+      const matchedService = services.find((s) => normalizeUuid(s.uuid) === targetServiceNorm);
+
+      if (!matchedService) {
+        const foundServices = services.map((s) => s.uuid).join(', ');
+        const msg = `Service (${SERVICE_UUID}) tidak ditemukan pada gelang. Ditemukan: [${foundServices}]`;
+        console.warn(`[BLE] ${msg}`);
+        return { success: false, message: msg };
       }
 
-      console.log(`[BLE] Time sync berhasil terkirim ke ESP: ${timeStr} (base64: ${base64Time})`);
-      return true;
-    } catch (error) {
-      console.warn('[BLE] Gagal kirim time sync:', error);
-      return false;
+      // Cari karakteristik waktu di dalam service
+      const characteristics = await matchedService.characteristics();
+      const matchedChar = characteristics.find((c) => normalizeUuid(c.uuid) === targetCharNorm);
+
+      if (!matchedChar) {
+        const foundChars = characteristics.map((c) => c.uuid).join(', ');
+        const msg = `Karakteristik waktu (${TIME_CHAR_UUID}) tidak ditemukan pada gelang. Firmware gelang Anda mungkin belum memiliki fitur sinkronisasi waktu. Karakteristik yang aktif: [${foundChars}]`;
+        console.warn(`[BLE] ${msg}`);
+        return { success: false, message: msg };
+      }
+
+      // Kirim waktu langsung ke instance Characteristic
+      let writeMethod = 'withResponse';
+      try {
+        await matchedChar.writeWithResponse(base64Time);
+      } catch (writeErr) {
+        console.warn('[BLE] writeWithResponse gagal, mencoba writeWithoutResponse:', writeErr);
+        writeMethod = 'withoutResponse';
+        await matchedChar.writeWithoutResponse(base64Time);
+      }
+
+      const successMsg = `Jam gelang berhasil diperbarui ke ${timeStr} (${writeMethod})`;
+      console.log(`[BLE] ${successMsg}`);
+      return { success: true, message: successMsg };
+    } catch (error: any) {
+      const errMsg = error?.message || String(error);
+      console.error('[BLE] Error detail kirim time sync:', error);
+      return { success: false, message: `Gagal kirim waktu: ${errMsg}` };
     }
   }
 

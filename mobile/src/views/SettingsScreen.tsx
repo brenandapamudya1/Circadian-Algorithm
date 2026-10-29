@@ -218,11 +218,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ bleConnectionSta
 
     try {
       setIsSyncingTime(true);
-      const success = await bleManager.syncTimeToESP();
-      if (success) {
-        Alert.alert('Sukses', 'Jam gelang berhasil disinkronkan dengan waktu HP.');
+      const res = await bleManager.syncTimeToESP();
+      if (res.success) {
+        Alert.alert('Sukses', res.message);
       } else {
-        Alert.alert('Gagal', 'Tidak dapat mengirim waktu ke gelang. Pastikan gelang berada di dekat ponsel.');
+        Alert.alert('Gagal Sinkron Jam', res.message);
       }
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Gagal mengirim waktu ke gelang.');
