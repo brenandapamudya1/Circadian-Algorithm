@@ -178,12 +178,18 @@ export async function downloadCsvFile(
   } else {
     try {
       // Native Mobile (Android & iOS)
-      const FileSystem = require('expo-file-system');
+      let FileSystem: any;
+      try {
+        FileSystem = require('expo-file-system/legacy');
+      } catch {
+        FileSystem = require('expo-file-system');
+      }
+
       const baseDir = FileSystem.cacheDirectory || FileSystem.documentDirectory;
       const targetUri = `${baseDir}${fileName}`;
 
       await FileSystem.writeAsStringAsync(targetUri, fullContent, {
-        encoding: FileSystem.EncodingType.UTF8,
+        encoding: FileSystem.EncodingType?.UTF8 || 'utf8',
       });
 
       let isShared = false;
